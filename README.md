@@ -1,7 +1,5 @@
 # CS488 Fall 2015 Project Code
 
----
-
 ## Dependencies
 * OpenGL 3.2+
 * GLFW
