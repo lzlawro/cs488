@@ -85,13 +85,26 @@ void A1::init()
 		1.0f, 1000.0f );
 }
 
+void A1::initCube() 
+{
+	size_t sz = 8;
+	float *verts = new float[sz];
+
+	delete [] verts;
+
+	CHECK_GL_ERRORS; 
+}
+
 void A1::initGrid()
 {
+	// Total of the grid is 18*18, live area is 16*16
+	// There are 19 * 19 vertices in a layer
 	size_t sz = 3 * 2 * 2 * (DIM+3);
 
 	float *verts = new float[ sz ];
 	size_t ct = 0;
 	for( int idx = 0; idx < DIM+3; ++idx ) {
+		
 		verts[ ct ] = -1;
 		verts[ ct+1 ] = 0;
 		verts[ ct+2 ] = idx-1;
@@ -107,13 +120,14 @@ void A1::initGrid()
 		verts[ ct+4 ] = 0;
 		verts[ ct+5 ] = DIM+1;
 		ct += 6;
+		
 	}
 
 	// Create the vertex array to record buffer assignments.
 	glGenVertexArrays( 1, &m_grid_vao );
 	glBindVertexArray( m_grid_vao );
 
-	// Create the cube vertex buffer
+	// Create the grid vertex buffer
 	glGenBuffers( 1, &m_grid_vbo );
 	glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
 	glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float),
@@ -324,6 +338,12 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 	// Fill in with event handling code...
 	if( action == GLFW_PRESS ) {
 		// Respond to some key events.
+
+		if (key == GLFW_KEY_Q) {
+			glfwSetWindowShouldClose(m_window, GL_TRUE);
+
+			eventHandled = true;
+		}
 	}
 
 	return eventHandled;
