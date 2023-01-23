@@ -4,6 +4,7 @@
 #include "cs488-framework/GlErrorCheck.hpp"
 
 #include <iostream>
+#include <vector>
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -71,6 +72,7 @@ void A1::init()
 	col_uni = m_shader.getUniformLocation( "colour" );
 
 	initGrid();
+	initCube();
 
 	// Set up initial view and projection matrices (need to do this here,
 	// since it depends on the GLFW window being set up correctly).
@@ -87,8 +89,62 @@ void A1::init()
 
 void A1::initCube() 
 {
-	size_t sz = 8;
-	float *verts = new float[sz];
+
+	// Eight 3-dimensional vertices
+	size_t sz = 3*8;
+	const GLfloat *verts = new GLfloat[sz] {
+		-1, 0, 0,
+
+		0, 0, 0, 
+
+		-1, 0, -1, 
+
+		0, 0, -1, 
+
+		-1, 1, 0, 
+		
+		0, 1, 0, 
+
+		-1, 1, -1, 
+		
+		0, 1, -1, 
+	};
+
+	// Set things up on GPU
+	glGenVertexArrays(1, &m_cube_vao);
+	glBindVertexArray(m_cube_vao);
+
+	// Start generating Vertex Buffer Objects (VBO)
+	glGenBuffers(1, &m_cube_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
+	glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float),
+		verts, GL_STATIC_DRAW );
+
+	// Data for IBO
+	const vector<GLuint> indexBufferData = {
+		0, 2, 3, 0, 1, 3,
+		0, 4, 5, 0, 1, 5, 
+		0, 4, 6, 0, 1, 6, 
+		7, 5, 4, 7, 6, 4, 
+		7, 5, 1, 7, 3, 1, 
+		7, 6, 2, 7, 3, 2
+	};
+
+	// Set up the IBO
+	glGenBuffers(1, &m_cube_ibo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_cube_ibo);
+	glBufferData(
+		GL_ELEMENT_ARRAY_BUFFER,
+		indexBufferData.size() * sizeof(GLuint), 
+		indexBufferData.data(),
+		GL_STATIC_DRAW
+	);
+
+	// Reset state to prevent rogue code from messing with *my* 
+	// stuff!
+	glBindVertexArray( 0 ); 
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
 	delete [] verts;
 
