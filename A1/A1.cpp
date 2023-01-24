@@ -147,32 +147,47 @@ void A1::initCube()
 	// Specify vertices
 
 	// Eight 3-dimensional vertices
-	size_t sz = 3*8;
-	const GLfloat *verts = new GLfloat[sz] {
-		-1, 0, 0,
+	const vector<GLfloat> *vertexData = new vector<GLfloat> {
+		// -1, 0, 0,
 
-		0, 0, 0, 
+		// 0, 0, 0, 
 
-		-1, 0, -1, 
+		// -1, 0, -1, 
 
-		0, 0, -1, 
+		// 0, 0, -1, 
 
-		-1, 1, 0, 
+		// -1, 1, 0, 
 		
-		0, 1, 0, 
+		// 0, 1, 0, 
+
+		-0.5f, -0.5f, 0.0f, // bottom left
+		
+		// 1
+		0.5f, -0.5f, 0.0f,	// bottom right
+		// 2	
+		-0.5f, 0.5f, 0.0f,	// top left
+
+		// top left and bottom right vertices are redundant
+
+		
+		0.5f, -0.5f, 0.0f, // bottom right
+		
+		0.5f, 0.5f, 0.0f,	// top right
+
+		-0.5f, 0.5f, 0.0f,	// top left
 
 		-1, 1, -1, 
 		
 		0, 1, -1,
 
-		// 1.0f, 0.0f, 0.0f,
-		// 0.0f, 1.0f, 0.0f,
-		// 0.0f, 0.0f, 1.0f,
-		// 1.0f, 1.0f, 0.0f,
-		// 1.0f, 0.0f, 0.0f,
-		// 0.0f, 1.0f, 0.0f,
-		// 0.0f, 0.0f, 1.0f,
-		// 1.0f, 1.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+		1.0f, 1.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+		1.0f, 1.0f, 0.0f,
 	};
 
 	// Set things up on GPU
@@ -182,12 +197,13 @@ void A1::initCube()
 	// Start generating Vertex Buffer Objects (VBO)
 	glGenBuffers(1, &m_cube_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
-	glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float),
-		verts, GL_STATIC_DRAW );
+	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData->size(),
+		vertexData->data(), GL_STATIC_DRAW );
 
 	// Data for IBO
 	const vector<GLuint> indexBufferData = {
-		0, 2, 3, 0, 1, 3,
+		0, 1, 2, 3, 4, 5,
+		// 0, 2, 3, 0, 1, 3,
 		0, 4, 5, 0, 1, 5, 
 		0, 4, 6, 0, 1, 6, 
 		7, 5, 4, 7, 6, 4, 
@@ -211,6 +227,7 @@ void A1::initCube()
 	// Layout established, generated VBOs
 	// Actually get to the data
 
+	// Vertex information
 	glEnableVertexAttribArray(0);
 
 	glVertexAttribPointer(0, 
@@ -218,13 +235,23 @@ void A1::initCube()
 						  GL_FLOAT, 
 						  GL_FALSE,
 						  sizeof(GL_FLOAT)*3,
-						  (void*) 0);
+						  (GLvoid*) 0);
 
-	glDisableVertexAttribArray(0);
+	// Color information
+	glEnableVertexAttribArray(1);
+
+	glVertexAttribPointer(1, 
+						  3, 
+						  GL_FLOAT, 
+						  GL_FALSE,
+						  sizeof(GL_FLOAT)*3,
+						  (GLvoid*) (sizeof(GL_FLOAT)*3*8));
 
 	// Reset state to prevent rogue code from messing with *my* 
 	// stuff!
-	glBindVertexArray( 0 ); 
+	glBindVertexArray( 0 );
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
@@ -266,7 +293,7 @@ void A1::initCube()
 
 	//----------------------------------------------------------------------------------------
 
-	delete [] verts;
+	delete vertexData;
 
 	CHECK_GL_ERRORS; 
 }
@@ -420,12 +447,15 @@ void A1::draw()
 		// Highlight the active square.
 	m_shader.disable();
 
+	// m_cube_shader.enable();
 	m_cube_shader.enable();
 		// Draw the cubes
+
 		glBindVertexArray(m_cube_vao);
 		glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
-		glDrawArrays(GL_TRIANGLES, 0, 12);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
+	// m_cube_shader.disable();
 	m_cube_shader.disable();
 
 	// Restore defaults
