@@ -6,6 +6,7 @@ shared/glfw**/Makefile
 shared/imgui**/Makefile
 
 build
+.vscode
 
 *.a
 *.o
