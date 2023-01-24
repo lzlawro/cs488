@@ -30,6 +30,7 @@ protected:
 	virtual bool keyInputEvent(int key, int action, int mods) override;
 
 private:
+	GLuint compileShader(std::string shader, GLenum type);
 	void initGrid();
 	void initCube();
 
@@ -41,6 +42,7 @@ private:
 	GLint col_uni;   // Uniform location for cube colour.
 
 	// Fields related to grid geometry.
+	ShaderProgram m_cube_shader;
 	GLuint m_grid_vao; // Vertex Array Object
 	GLuint m_grid_vbo; // Vertex Buffer Object
 

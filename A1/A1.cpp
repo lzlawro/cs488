@@ -87,8 +87,56 @@ void A1::init()
 		1.0f, 1000.0f );
 }
 
+//----------------------------------------------------------------------------------------
+/*
+ * Compile glsl shader language string, 
+ * create shader object and returns its id
+ */
+GLuint A1::compileShader(std::string shader, GLenum type) {
+	const char *shaderCode = shader.c_str();
+	GLuint shaderId = glCreateShader(type);
+
+	if (shaderId == 0) {
+		// If shaderId is zero, it means glCreateShader
+		// failed to create shader object
+		cout << "Error creating shader object!" << endl;
+		return 0;
+	}
+
+	// Attach source code to this shader object
+	glShaderSource(shaderId, 1, &shaderCode, NULL);
+	glCompileShader(shaderId);
+
+	GLint compileStatus;
+
+	// Check for compilation status
+	glGetShaderiv(shaderId, GL_COMPILE_STATUS, &compileStatus);
+
+	if (!compileStatus) {
+		// If compilation is not successful
+		int length;
+		glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &length);
+		char *cMessage = new char[length];
+
+		// Get additional info about the failure
+		glGetShaderInfoLog(shaderId, length, &length, cMessage);
+		cout << "Cannot compile shader: " << cMessage;
+
+		delete [] cMessage;
+
+		glDeleteShader(shaderId);
+
+		return 0;
+	}
+
+	return shaderId;
+
+}
+
 void A1::initCube() 
 {
+	//----------------------------------------------------------------------------------------
+	// Specify vertices
 
 	// Eight 3-dimensional vertices
 	size_t sz = 3*8;
@@ -140,12 +188,66 @@ void A1::initCube()
 		GL_STATIC_DRAW
 	);
 
+	// GL_STATIC_DRAW means the information will not be changed
+	// while the program is running
+
+	// Layout established, generated VBOs
+	// Actually get to the data
+
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(0, 
+						  3, 
+						  GL_FLOAT, 
+						  GL_FALSE,
+						  sizeof(GL_FLOAT)*3,
+						  (void*) 0);
+
+	glDisableVertexAttribArray(0);
+
 	// Reset state to prevent rogue code from messing with *my* 
 	// stuff!
 	glBindVertexArray( 0 ); 
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
+	//----------------------------------------------------------------------------------------
+	// Create shader object
+	/*
+	string vertexShaderSource = R"(
+		#version 330 core
+
+		layout(location=0) in vec3 position;
+		layout(location=1) in vec3 vertexColors;
+
+		out vec3 v_vertexColors;
+
+		void main()
+		{
+			v_vertexColors = vertexColors;
+
+			gl_Position = vec4(position.x, position.y, position.z, 1.0f);
+		}
+	)";
+
+	string fragmentShaderSource = R"(
+		#version 330 core
+
+		in vec3 v_vertexColors;
+
+		out vec4 color;
+
+		void main()
+		{
+			color = vec4(v_vertexColors.r,
+						v_vertexColors.g, 
+						v_vertexColors.b,
+						1.0f);
+		}
+	)";
+	*/
+
+	//----------------------------------------------------------------------------------------
 	delete [] verts;
 
 	CHECK_GL_ERRORS; 
@@ -296,6 +398,9 @@ void A1::draw()
 		glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
 
 		// Draw the cubes
+		glBindVertexArray(m_cube_vao);
+		glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
+
 		// Highlight the active square.
 	m_shader.disable();
 
