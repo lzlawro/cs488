@@ -71,6 +71,14 @@ void A1::init()
 	M_uni = m_shader.getUniformLocation( "M" );
 	col_uni = m_shader.getUniformLocation( "colour" );
 
+	// Build cube shader
+	m_cube_shader.generateProgramObject();
+	m_cube_shader.attachVertexShader(
+		getAssetFilePath("CubeVertexShader.vs").c_str());
+	m_cube_shader.attachFragmentShader(
+		getAssetFilePath("CubeFragmentShader.fs").c_str());
+	m_cube_shader.link();
+
 	initGrid();
 	initCube();
 
@@ -155,7 +163,16 @@ void A1::initCube()
 
 		-1, 1, -1, 
 		
-		0, 1, -1, 
+		0, 1, -1,
+
+		// 1.0f, 0.0f, 0.0f,
+		// 0.0f, 1.0f, 0.0f,
+		// 0.0f, 0.0f, 1.0f,
+		// 1.0f, 1.0f, 0.0f,
+		// 1.0f, 0.0f, 0.0f,
+		// 0.0f, 1.0f, 0.0f,
+		// 0.0f, 0.0f, 1.0f,
+		// 1.0f, 1.0f, 0.0f,
 	};
 
 	// Set things up on GPU
@@ -248,6 +265,7 @@ void A1::initCube()
 	*/
 
 	//----------------------------------------------------------------------------------------
+
 	delete [] verts;
 
 	CHECK_GL_ERRORS; 
@@ -397,15 +415,23 @@ void A1::draw()
 		glUniform3f( col_uni, 1, 1, 1 );
 		glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
 
-		// Draw the cubes
-		glBindVertexArray(m_cube_vao);
-		glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
+		// Draw the cubes (?)
 
 		// Highlight the active square.
 	m_shader.disable();
 
+	m_cube_shader.enable();
+		// Draw the cubes
+		glBindVertexArray(m_cube_vao);
+		glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
+		glDrawArrays(GL_TRIANGLES, 0, 12);
+
+	m_cube_shader.disable();
+
 	// Restore defaults
-	glBindVertexArray( 0 );
+	glBindVertexArray( 0 ); 
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
 	CHECK_GL_ERRORS;
 }
