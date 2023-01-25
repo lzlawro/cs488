@@ -56,5 +56,7 @@ private:
 	glm::mat4 view;
 
 	float colour[3];
+	float cube_colour[3];
+
 	int current_col;
 };

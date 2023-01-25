@@ -148,33 +148,17 @@ void A1::initCube()
 
 	// Eight 3-dimensional vertices
 	const vector<GLfloat> *vertexData = new vector<GLfloat> {
-		// -1, 0, 0,
+		-1, 0, 0,
 
-		// 0, 0, 0, 
+		0, 0, 0, 
 
-		// -1, 0, -1, 
+		-1, 0, -1, 
 
-		// 0, 0, -1, 
+		0, 0, -1, 
 
-		// -1, 1, 0, 
+		-1, 1, 0, 
 		
-		// 0, 1, 0, 
-
-		-0.5f, -0.5f, 0.0f, // bottom left
-		
-		// 1
-		0.5f, -0.5f, 0.0f,	// bottom right
-		// 2	
-		-0.5f, 0.5f, 0.0f,	// top left
-
-		// top left and bottom right vertices are redundant
-
-		
-		0.5f, -0.5f, 0.0f, // bottom right
-		
-		0.5f, 0.5f, 0.0f,	// top right
-
-		-0.5f, 0.5f, 0.0f,	// top left
+		0, 1, 0, 
 
 		-1, 1, -1, 
 		
@@ -200,10 +184,14 @@ void A1::initCube()
 	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData->size(),
 		vertexData->data(), GL_STATIC_DRAW );
 
+	// Specify the means of extracting the position values properly.
+	GLint posAttrib = m_cube_shader.getAttribLocation( "position" );
+	glEnableVertexAttribArray( posAttrib );
+	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+
 	// Data for IBO
 	const vector<GLuint> indexBufferData = {
-		0, 1, 2, 3, 4, 5,
-		// 0, 2, 3, 0, 1, 3,
+		0, 2, 3, 0, 1, 3,
 		0, 4, 5, 0, 1, 5, 
 		0, 4, 6, 0, 1, 6, 
 		7, 5, 4, 7, 6, 4, 
@@ -449,11 +437,16 @@ void A1::draw()
 
 	// m_cube_shader.enable();
 	m_cube_shader.enable();
-		// Draw the cubes
+		glEnable( GL_DEPTH_TEST );
 
+		glUniformMatrix4fv( P_uni, 1, GL_FALSE, value_ptr( proj ) );
+		glUniformMatrix4fv( V_uni, 1, GL_FALSE, value_ptr( view ) );
+		glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
+
+		// Draw the cubes
 		glBindVertexArray(m_cube_vao);
 		glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 	// m_cube_shader.disable();
 	m_cube_shader.disable();
