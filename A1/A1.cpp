@@ -215,14 +215,25 @@ void A1::updateWall()
 
 	vector<GLfloat> vertexData = {};
 
-	vector<GLfloat> temp = cubeData;
-	
-	for (int h = 0; h < m_wall_height; h++) {
-		vertexData.insert(vertexData.end(), temp.begin(), temp.end());
-		for (int y = 0; y < cubeData.size(); y++) {
-			if (y % 3 == 1) temp[y] += 1.0f;
+	for (int i = 0; i < DIM; i++) {
+		for (int j = 0; j < DIM; j++) {
+			if (m_maze->getValue(j, i) == 1) {
+				vector<GLfloat> temp = cubeData;
+				for (int k = 0; k < cubeData.size(); k++) {
+					if (k % 3 == 0) temp[k] += (GLfloat)i;
+					else if (k % 3 == 2) temp[k] += (GLfloat)j;
+				}
+
+				for (int h = 0; h < m_wall_height; h++) {
+					vertexData.insert(vertexData.end(), temp.begin(), temp.end());
+					for (int y = 0; y < cubeData.size(); y++) {
+						if (y % 3 == 1) temp[y] += 1.0f;
+					}
+				}
+			}
 		}
 	}
+	
 
 	// Generate new vaos and vbos for the cubes
 	// To draw multiple cubes with a single set of vao & vbo
@@ -471,7 +482,7 @@ void A1::draw()
 		glBindVertexArray(m_cube_vao);
 		glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
 		// 12 is the number of triangles needed for each cube
-		glDrawArrays(GL_TRIANGLES, 0, 3*12*m_wall_height);
+		glDrawArrays(GL_TRIANGLES, 0, 3*12*m_wall_height*DIM*DIM*DIM);
 
 	// m_cube_shader.disable();
 	m_cube_shader.disable();
@@ -586,7 +597,7 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 				++m_wall_height;
 			}
 
-			cout << "Wall height is now: " << m_wall_height << endl;
+			// cout << "Wall height is now: " << m_wall_height << endl;
 
 			eventHandled = true;
 		}
@@ -595,7 +606,7 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 				--m_wall_height;
 			}
 
-			cout << "Wall height is now: " << m_wall_height << endl;
+			// cout << "Wall height is now: " << m_wall_height << endl;
 
 			eventHandled = true;
 		}
