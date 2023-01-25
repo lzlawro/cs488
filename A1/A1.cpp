@@ -164,22 +164,6 @@ void A1::initCube()
 		0, 0, 1,
 		0, 0, 0,
 		0, 1, 0,
-
-		// Color data
-		1.0f, 0.0f, 0.0f, 
-		0.0f, 1.0f, 0.0f, 
-		0.0f, 0.0f, 1.0f, 
-		1.0f, 0.0f, 0.0f, 
-		0.0f, 1.0f, 0.0f, 
-		0.0f, 0.0f, 1.0f, 
-		1.0f, 0.0f, 0.0f, 
-		0.0f, 1.0f, 0.0f, 
-		0.0f, 0.0f, 1.0f, 
-		1.0f, 0.0f, 0.0f, 
-		0.0f, 1.0f, 0.0f, 
-		0.0f, 0.0f, 1.0f, 
-		1.0f, 0.0f, 0.0f, 
-		0.0f, 1.0f, 0.0f, 
 	};
 
 	// Set things up on GPU
@@ -212,17 +196,6 @@ void A1::initCube()
 						  GL_FALSE,
 						  sizeof(GL_FLOAT)*3,
 						  (GLvoid*) 0);
-
-	// Color information
-	glEnableVertexAttribArray(1);
-
-	glVertexAttribPointer(1, 
-						  3, 
-						  GL_FLOAT, 
-						  GL_FALSE,
-						  sizeof(GL_FLOAT)*3,
-						  (GLvoid*) (sizeof(GL_FLOAT)*((vertexData.size())/2))
-						  );
 
 	// Reset state to prevent rogue code from messing with *my* 
 	// stuff!
