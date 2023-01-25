@@ -32,7 +32,7 @@ protected:
 private:
 	GLuint compileShader(std::string shader, GLenum type);
 	void initGrid();
-	void initCube(GLfloat cx, GLfloat cy, GLfloat cz);
+	void addCube(GLfloat cx, GLfloat cy, GLfloat cz);
 
 	// Fields related to the shader and uniforms.
 	ShaderProgram m_shader;
@@ -49,6 +49,7 @@ private:
 	// Fields related to wall geomotry
 	GLuint m_cube_vao;
 	GLuint m_cube_vbo;
+	unsigned int m_ncubes;
 
 	// Matrices controlling the camera and projection.
 	glm::mat4 proj;

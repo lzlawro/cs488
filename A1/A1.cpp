@@ -65,6 +65,9 @@ void A1::init()
 		getAssetFilePath( "FragmentShader.fs" ).c_str() );
 	m_shader.link();
 
+	// Set the number of cubes counter to 0
+	m_ncubes = 0;
+
 	// Set up the uniforms
 	P_uni = m_shader.getUniformLocation( "P" );
 	V_uni = m_shader.getUniformLocation( "V" );
@@ -79,8 +82,14 @@ void A1::init()
 		getAssetFilePath("CubeFragmentShader.fs").c_str());
 	m_cube_shader.link();
 
+	// Generate new vaos and vbos for the cubes
+	// To draw multiple cubes with a single set of vao & vbo
+	glGenVertexArrays(1, &m_cube_vao);
+	glGenBuffers(1, &m_cube_vbo);
+
 	initGrid();
-	initCube(1.0f, 2.0f, 1.0f);
+	addCube(1.0f, 0.0f, 1.0f);
+	addCube(1.0f, 0.0f, 2.0f);
 
 	// Set up initial view and projection matrices (need to do this here,
 	// since it depends on the GLFW window being set up correctly).
@@ -141,7 +150,7 @@ GLuint A1::compileShader(std::string shader, GLenum type) {
 
 }
 
-void A1::initCube(GLfloat cx, GLfloat cy, GLfloat cz)
+void A1::addCube(GLfloat cx, GLfloat cy, GLfloat cz)
 {
 	//----------------------------------------------------------------------------------------
 	// Specify vertices
@@ -205,20 +214,24 @@ void A1::initCube(GLfloat cx, GLfloat cy, GLfloat cz)
 		else vertexData[i] += cz;
 	}
 
+	// Generate new vaos and vbos for the cubes
+	// To draw multiple cubes with a single set of vao & vbo
+
 	// Set things up on GPU
-	glGenVertexArrays(1, &m_cube_vao);
 	glBindVertexArray(m_cube_vao);
 
 	// Start generating Vertex Buffer Objects (VBO)
-	glGenBuffers(1, &m_cube_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
 	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData.size(),
 		vertexData.data(), GL_STATIC_DRAW );
 
-	// Specify the means of extracting the position values properly.
-	GLint posAttrib = m_cube_shader.getAttribLocation( "position" );
-	glEnableVertexAttribArray( posAttrib );
-	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+	// Why does deleting this portion not matter?
+	//----------------------------------------------------------------------------------------
+	// // Specify the means of extracting the position values properly.
+	// GLint posAttrib = m_cube_shader.getAttribLocation( "position" );
+	// glEnableVertexAttribArray( posAttrib );
+	// glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+	//----------------------------------------------------------------------------------------
 
 	// GL_STATIC_DRAW means the information will not be changed
 	// while the program is running
@@ -234,13 +247,14 @@ void A1::initCube(GLfloat cx, GLfloat cy, GLfloat cz)
 						  GL_FLOAT, 
 						  GL_FALSE,
 						  sizeof(GL_FLOAT)*3,
-						  (GLvoid*) 0);
+						  // (GLvoid*) (sizeof(GL_FLOAT)*(m_ncubes++)*(18*6))
+						  0
+						  );
 
 	// Reset state to prevent rogue code from messing with *my* 
 	// stuff!
 	glBindVertexArray( 0 );
 	glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
@@ -445,7 +459,8 @@ void A1::draw()
 		// Draw the cubes
 		glBindVertexArray(m_cube_vao);
 		glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
-		glDrawArrays(GL_TRIANGLES, 0, 3*12);
+		// 12 is the number of triangles needed for each cube
+		glDrawArrays(GL_TRIANGLES, 0, 3*12*2);
 
 	// m_cube_shader.disable();
 	m_cube_shader.disable();
