@@ -18,6 +18,8 @@ using namespace glm;
 using namespace std;
 
 static const size_t DIM = 16;
+static const size_t WALL_HEIGHT_MIN = 0;
+static const size_t WALL_HEIGHT_MAX = 10;
 
 //----------------------------------------------------------------------------------------
 // Constructor
@@ -32,7 +34,9 @@ A1::A1()
 //----------------------------------------------------------------------------------------
 // Destructor
 A1::~A1()
-{}
+{
+	delete m_maze;
+}
 
 //----------------------------------------------------------------------------------------
 /*
@@ -49,9 +53,9 @@ void A1::init()
 	
 
 	// DELETE FROM HERE...
-	Maze m(DIM);
-	m.digMaze();
-	m.printMaze();
+	m_maze = new Maze(DIM);
+	m_maze->digMaze();
+	m_maze->printMaze();
 	// ...TO HERE
 	
 	// Set the background colour.
@@ -67,6 +71,9 @@ void A1::init()
 
 	// Set the number of cubes counter to 0
 	m_ncubes = 0;
+
+	// Initially set wall height to 1
+	m_wall_height = 1;
 
 	// Set up the uniforms
 	P_uni = m_shader.getUniformLocation( "P" );
@@ -88,8 +95,6 @@ void A1::init()
 	glGenBuffers(1, &m_cube_vbo);
 
 	initGrid();
-	addCube(1.0f, 0.0f, 1.0f);
-	addCube(1.0f, 0.0f, 2.0f);
 
 	// Set up initial view and projection matrices (need to do this here,
 	// since it depends on the GLFW window being set up correctly).
@@ -150,13 +155,13 @@ GLuint A1::compileShader(std::string shader, GLenum type) {
 
 }
 
-void A1::addCube(GLfloat cx, GLfloat cy, GLfloat cz)
+void A1::updateWall()
 {
 	//----------------------------------------------------------------------------------------
 	// Specify vertices
 
 	// Eight 3-dimensional vertices
-	vector<GLfloat> vertexData = 
+	const vector<GLfloat> cubeData = 
 	{
 		// Vertex data
 		0.0f, 0.0f, 0.0f, 
@@ -208,10 +213,15 @@ void A1::addCube(GLfloat cx, GLfloat cy, GLfloat cz)
 		1.0f, 0.0f, 0.0f,
 	};
 
-	for (int i = 0; i < vertexData.size(); i++) {
-		if (i % 3 == 0) vertexData[i] += cx;
-		else if (i % 3 == 1) vertexData[i] += cy;
-		else vertexData[i] += cz;
+	vector<GLfloat> vertexData = {};
+
+	vector<GLfloat> temp = cubeData;
+	
+	for (int h = 0; h < m_wall_height; h++) {
+		vertexData.insert(vertexData.end(), temp.begin(), temp.end());
+		for (int y = 0; y < cubeData.size(); y++) {
+			if (y % 3 == 1) temp[y] += 1.0f;
+		}
 	}
 
 	// Generate new vaos and vbos for the cubes
@@ -361,6 +371,7 @@ void A1::initGrid()
 void A1::appLogic()
 {
 	// Place per frame, application logic here ...
+	updateWall();
 }
 
 //----------------------------------------------------------------------------------------
@@ -460,7 +471,7 @@ void A1::draw()
 		glBindVertexArray(m_cube_vao);
 		glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
 		// 12 is the number of triangles needed for each cube
-		glDrawArrays(GL_TRIANGLES, 0, 3*12*2);
+		glDrawArrays(GL_TRIANGLES, 0, 3*12*m_wall_height);
 
 	// m_cube_shader.disable();
 	m_cube_shader.disable();
@@ -478,7 +489,9 @@ void A1::draw()
  * Called once, after program is signaled to terminate.
  */
 void A1::cleanup()
-{}
+{
+	
+}
 
 //----------------------------------------------------------------------------------------
 /*
@@ -565,6 +578,24 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 
 		if (key == GLFW_KEY_Q) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
+
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_SPACE) {
+			if (m_wall_height < WALL_HEIGHT_MAX) {
+				++m_wall_height;
+			}
+
+			cout << "Wall height is now: " << m_wall_height << endl;
+
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_BACKSPACE) {
+			if (m_wall_height > WALL_HEIGHT_MIN) {
+				--m_wall_height;
+			}
+
+			cout << "Wall height is now: " << m_wall_height << endl;
 
 			eventHandled = true;
 		}

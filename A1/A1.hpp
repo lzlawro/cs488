@@ -32,7 +32,13 @@ protected:
 private:
 	GLuint compileShader(std::string shader, GLenum type);
 	void initGrid();
-	void addCube(GLfloat cx, GLfloat cy, GLfloat cz);
+	void updateWall();
+
+	// Maze member
+	Maze *m_maze;
+
+	// Wall height
+	unsigned int m_wall_height;
 
 	// Fields related to the shader and uniforms.
 	ShaderProgram m_shader;
