@@ -31,8 +31,17 @@ protected:
 
 private:
 	GLuint compileShader(std::string shader, GLenum type);
+
+	// Initialization methods
 	void initGrid();
+
+	// Update (per frame) methods
 	void updateWall();
+	void updateAvatar();
+
+	// Draw methods
+	void drawGrid();
+	void drawWall();
 
 	// Maze member
 	Maze *m_maze;
@@ -48,14 +57,17 @@ private:
 	GLint col_uni;   // Uniform location for cube colour.
 
 	// Fields related to grid geometry.
-	ShaderProgram m_cube_shader;
+	// ShaderProgram m_cube_shader;
 	GLuint m_grid_vao; // Vertex Array Object
 	GLuint m_grid_vbo; // Vertex Buffer Object
 
 	// Fields related to wall geomotry
 	GLuint m_cube_vao;
 	GLuint m_cube_vbo;
-	unsigned int m_ncubes;
+
+	// Fields related to avatar geomotry
+	GLuint m_avatar_vao;
+	GLuint m_avatar_vbo;
 
 	// Matrices controlling the camera and projection.
 	glm::mat4 proj;

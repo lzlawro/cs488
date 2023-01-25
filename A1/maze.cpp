@@ -17,6 +17,8 @@ void Maze::reset()
 {
 	size_t sz = m_dim*m_dim;
 	std::fill( m_values, m_values + sz, 0 );
+
+	setAvatarValue(0,0);
 }
 
 Maze::~Maze()
@@ -34,9 +36,25 @@ int Maze::getValue( int x, int y ) const
 	return m_values[ y * m_dim + x ];
 }
 
+int Maze::getAvatarR() {
+	return m_avatar_r;
+}
+
+int Maze::getAvatarC() {
+	return m_avatar_c;
+}
+
+int getAvatarC();
+
 void Maze::setValue( int x, int y, int h )
 {
 	m_values[ y * m_dim + x ] = h;
+}
+
+void Maze::setAvatarValue(int x, int y)
+{
+	m_avatar_r = x;
+	m_avatar_c = y;
 }
 
 int perm[24][4] = {
@@ -78,7 +96,9 @@ void Maze::printMaze() {
 	int i,j;
 	for (i=0; i<m_dim; i++) {
 		for (j=0; j<m_dim; j++) { 
-			if ( getValue(i,j)==1 ) {
+			if (i == getAvatarC() && j == getAvatarR()) {
+				printf("@");
+			} else if ( getValue(i,j)==1 ) {
 				printf("X");
 			} else {
 				printf(" ");
@@ -86,6 +106,10 @@ void Maze::printMaze() {
 		}
 		printf("\n");
 	}
+}
+
+void Maze::printAvatarValue() {
+	printf("Avatar location: (%d, %d)\n", m_avatar_r, m_avatar_c);
 }
 
 
@@ -155,5 +179,9 @@ void Maze::digMaze()
         setValue(m_dim/2+1,m_dim/2-1,0);
         setValue(m_dim/2+1,m_dim/2,0);
         setValue(m_dim/2+1,m_dim/2+1,0);
+
+	printf("Start location: %d\n", s);
+
+	setAvatarValue(s, m_dim-1);
 
 }

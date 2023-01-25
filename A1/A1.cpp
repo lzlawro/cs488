@@ -47,15 +47,16 @@ void A1::init()
 	// Initialize random number generator
 	int rseed=getpid();
 	srandom(rseed);
+
 	// Print random number seed in case we want to rerun with
 	// same random numbers
-	cout << "Random number seed = " << rseed << endl;
+	// cout << "Random number seed = " << rseed << endl;
 	
 
 	// DELETE FROM HERE...
 	m_maze = new Maze(DIM);
-	m_maze->digMaze();
-	m_maze->printMaze();
+	// m_maze->digMaze();
+	// m_maze->printMaze();
 	// ...TO HERE
 	
 	// Set the background colour.
@@ -69,9 +70,6 @@ void A1::init()
 		getAssetFilePath( "FragmentShader.fs" ).c_str() );
 	m_shader.link();
 
-	// Set the number of cubes counter to 0
-	m_ncubes = 0;
-
 	// Initially set wall height to 1
 	m_wall_height = 1;
 
@@ -82,17 +80,15 @@ void A1::init()
 	col_uni = m_shader.getUniformLocation( "colour" );
 
 	// Build cube shader
-	m_cube_shader.generateProgramObject();
-	m_cube_shader.attachVertexShader(
-		getAssetFilePath("CubeVertexShader.vs").c_str());
-	m_cube_shader.attachFragmentShader(
-		getAssetFilePath("CubeFragmentShader.fs").c_str());
-	m_cube_shader.link();
+	// m_cube_shader.generateProgramObject();
+	// m_cube_shader.attachVertexShader(
+	// 	getAssetFilePath("CubeVertexShader.vs").c_str());
+	// m_cube_shader.attachFragmentShader(
+	// 	getAssetFilePath("CubeFragmentShader.fs").c_str());
+	// m_cube_shader.link();
 
 	// Generate new vaos and vbos for the cubes
 	// To draw multiple cubes with a single set of vao & vbo
-	glGenVertexArrays(1, &m_cube_vao);
-	glGenBuffers(1, &m_cube_vbo);
 
 	initGrid();
 
@@ -220,8 +216,8 @@ void A1::updateWall()
 			if (m_maze->getValue(j, i) == 1) {
 				vector<GLfloat> temp = cubeData;
 				for (int k = 0; k < cubeData.size(); k++) {
-					if (k % 3 == 0) temp[k] += (GLfloat)i;
-					else if (k % 3 == 2) temp[k] += (GLfloat)j;
+					if (k % 3 == 0) temp[k] += (GLfloat)(i);
+					else if (k % 3 == 2) temp[k] += (GLfloat)(j);
 				}
 
 				for (int h = 0; h < m_wall_height; h++) {
@@ -239,9 +235,11 @@ void A1::updateWall()
 	// To draw multiple cubes with a single set of vao & vbo
 
 	// Set things up on GPU
+	glGenVertexArrays(1, &m_cube_vao);
 	glBindVertexArray(m_cube_vao);
 
 	// Start generating Vertex Buffer Objects (VBO)
+	glGenBuffers(1, &m_cube_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
 	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData.size(),
 		vertexData.data(), GL_STATIC_DRAW );
@@ -443,11 +441,7 @@ void A1::guiLogic()
 	}
 }
 
-//----------------------------------------------------------------------------------------
-/*
- * Called once per frame, after guiLogic().
- */
-void A1::draw()
+void A1::drawGrid()
 {
 	// Create a global transformation for the model (centre it).
 	mat4 W;
@@ -470,8 +464,22 @@ void A1::draw()
 		// Highlight the active square.
 	m_shader.disable();
 
+	// Restore defaults
+	glBindVertexArray( 0 ); 
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+
+	CHECK_GL_ERRORS;
+}
+
+void A1::drawWall()
+{
+	// Create a global transformation for the model (centre it).
+	mat4 W;
+	W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
+	
 	// m_cube_shader.enable();
-	m_cube_shader.enable();
+	m_shader.enable();
 		glEnable( GL_DEPTH_TEST );
 
 		glUniformMatrix4fv( P_uni, 1, GL_FALSE, value_ptr( proj ) );
@@ -485,7 +493,7 @@ void A1::draw()
 		glDrawArrays(GL_TRIANGLES, 0, 3*12*m_wall_height*DIM*DIM*DIM);
 
 	// m_cube_shader.disable();
-	m_cube_shader.disable();
+	m_shader.disable();
 
 	// Restore defaults
 	glBindVertexArray( 0 ); 
@@ -493,6 +501,17 @@ void A1::draw()
 	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
 	CHECK_GL_ERRORS;
+}
+
+//----------------------------------------------------------------------------------------
+/*
+ * Called once per frame, after guiLogic().
+ */
+void A1::draw()
+{
+	drawGrid();
+
+	drawWall();
 }
 
 //----------------------------------------------------------------------------------------
@@ -592,6 +611,14 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 
 			eventHandled = true;
 		}
+
+		if (key == GLFW_KEY_D) {
+			m_maze->digMaze();
+			m_maze->printMaze();
+
+			eventHandled = true;
+		}
+
 		if (key == GLFW_KEY_SPACE) {
 			if (m_wall_height < WALL_HEIGHT_MAX) {
 				++m_wall_height;
@@ -601,6 +628,7 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 
 			eventHandled = true;
 		}
+
 		if (key == GLFW_KEY_BACKSPACE) {
 			if (m_wall_height > WALL_HEIGHT_MIN) {
 				--m_wall_height;
