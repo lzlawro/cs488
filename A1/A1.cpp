@@ -147,31 +147,39 @@ void A1::initCube()
 	// Specify vertices
 
 	// Eight 3-dimensional vertices
-	const vector<GLfloat> *vertexData = new vector<GLfloat> {
-		-1, 0, 0,
-
+	const vector<GLfloat> vertexData = 
+	{
+		// Vertex data
 		0, 0, 0, 
-
-		-1, 0, -1, 
-
-		0, 0, -1, 
-
-		-1, 1, 0, 
-		
 		0, 1, 0, 
+		1, 0, 0, 
+		1, 1, 0, 
+		1, 1, 1, 
+		0, 1, 0, 
+		0, 1, 1,
+		0, 0, 1,  
+		1, 1, 1,
+		1, 0, 1,
+		1, 0, 0,
+		0, 0, 1,
+		0, 0, 0,
+		0, 1, 0,
 
-		-1, 1, -1, 
-		
-		0, 1, -1,
-
-		1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-		1.0f, 1.0f, 0.0f,
-		1.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 1.0f,
-		1.0f, 1.0f, 0.0f,
+		// Color data
+		1.0f, 0.0f, 0.0f, 
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 0.0f, 
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 0.0f, 
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 0.0f, 
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 0.0f, 
+		0.0f, 1.0f, 0.0f, 
 	};
 
 	// Set things up on GPU
@@ -181,33 +189,13 @@ void A1::initCube()
 	// Start generating Vertex Buffer Objects (VBO)
 	glGenBuffers(1, &m_cube_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
-	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData->size(),
-		vertexData->data(), GL_STATIC_DRAW );
+	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData.size(),
+		vertexData.data(), GL_STATIC_DRAW );
 
 	// Specify the means of extracting the position values properly.
 	GLint posAttrib = m_cube_shader.getAttribLocation( "position" );
 	glEnableVertexAttribArray( posAttrib );
 	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
-
-	// Data for IBO
-	const vector<GLuint> indexBufferData = {
-		0, 2, 3, 0, 1, 3,
-		0, 4, 5, 0, 1, 5, 
-		0, 4, 6, 0, 1, 6, 
-		7, 5, 4, 7, 6, 4, 
-		7, 5, 1, 7, 3, 1, 
-		7, 6, 2, 7, 3, 2
-	};
-
-	// Set up the IBO
-	glGenBuffers(1, &m_cube_ibo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_cube_ibo);
-	glBufferData(
-		GL_ELEMENT_ARRAY_BUFFER,
-		indexBufferData.size() * sizeof(GLuint), 
-		indexBufferData.data(),
-		GL_STATIC_DRAW
-	);
 
 	// GL_STATIC_DRAW means the information will not be changed
 	// while the program is running
@@ -233,7 +221,8 @@ void A1::initCube()
 						  GL_FLOAT, 
 						  GL_FALSE,
 						  sizeof(GL_FLOAT)*3,
-						  (GLvoid*) (sizeof(GL_FLOAT)*3*8));
+						  (GLvoid*) (sizeof(GL_FLOAT)*((vertexData.size())/2))
+						  );
 
 	// Reset state to prevent rogue code from messing with *my* 
 	// stuff!
@@ -280,8 +269,6 @@ void A1::initCube()
 	*/
 
 	//----------------------------------------------------------------------------------------
-
-	delete vertexData;
 
 	CHECK_GL_ERRORS; 
 }
@@ -446,7 +433,7 @@ void A1::draw()
 		// Draw the cubes
 		glBindVertexArray(m_cube_vao);
 		glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 3*14);
 
 	// m_cube_shader.disable();
 	m_cube_shader.disable();

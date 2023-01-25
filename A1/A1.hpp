@@ -49,7 +49,6 @@ private:
 	// Fields related to wall geomotry
 	GLuint m_cube_vao;
 	GLuint m_cube_vbo;
-	GLuint m_cube_ibo;
 
 	// Matrices controlling the camera and projection.
 	glm::mat4 proj;
