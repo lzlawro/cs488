@@ -80,7 +80,7 @@ void A1::init()
 	m_cube_shader.link();
 
 	initGrid();
-	initCube();
+	initCube(1.0f, 2.0f, 1.0f);
 
 	// Set up initial view and projection matrices (need to do this here,
 	// since it depends on the GLFW window being set up correctly).
@@ -141,30 +141,69 @@ GLuint A1::compileShader(std::string shader, GLenum type) {
 
 }
 
-void A1::initCube() 
+void A1::initCube(GLfloat cx, GLfloat cy, GLfloat cz)
 {
 	//----------------------------------------------------------------------------------------
 	// Specify vertices
 
 	// Eight 3-dimensional vertices
-	const vector<GLfloat> vertexData = 
+	vector<GLfloat> vertexData = 
 	{
 		// Vertex data
-		0, 0, 0, 
-		0, 1, 0, 
-		1, 0, 0, 
-		1, 1, 0, 
-		1, 1, 1, 
-		0, 1, 0, 
-		0, 1, 1,
-		0, 0, 1,  
-		1, 1, 1,
-		1, 0, 1,
-		1, 0, 0,
-		0, 0, 1,
-		0, 0, 0,
-		0, 1, 0,
+		0.0f, 0.0f, 0.0f, 
+		0.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 1.0f,
+
+		0.0f, 0.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f, 
+		1.0f, 0.0f, 1.0f,
+
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 1.0f, 1.0f, 
+		1.0f, 1.0f, 1.0f,
+
+		0.0f, 1.0f, 0.0f, 
+		1.0f, 1.0f, 0.0f, 
+		1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 
+		1.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 0.0f,
+
+		1.0f, 1.0f, 1.0f, 
+		1.0f, 1.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 1.0f, 
+		0.0f, 0.0f, 1.0f, 
+		0.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 1.0f, 
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 1.0f, 
+		0.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 1.0f,
+
+		0.0f, 1.0f, 1.0f, 
+		1.0f, 1.0f, 1.0f, 
+		1.0f, 0.0f, 1.0f,
+
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 0.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 0.0f, 
+		1.0f, 1.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f,
 	};
+
+	for (int i = 0; i < vertexData.size(); i++) {
+		if (i % 3 == 0) vertexData[i] += cx;
+		else if (i % 3 == 1) vertexData[i] += cy;
+		else vertexData[i] += cz;
+	}
 
 	// Set things up on GPU
 	glGenVertexArrays(1, &m_cube_vao);
@@ -406,7 +445,7 @@ void A1::draw()
 		// Draw the cubes
 		glBindVertexArray(m_cube_vao);
 		glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 3*14);
+		glDrawArrays(GL_TRIANGLES, 0, 3*12);
 
 	// m_cube_shader.disable();
 	m_cube_shader.disable();

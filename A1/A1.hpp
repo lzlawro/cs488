@@ -32,7 +32,7 @@ protected:
 private:
 	GLuint compileShader(std::string shader, GLenum type);
 	void initGrid();
-	void initCube();
+	void initCube(GLfloat cx, GLfloat cy, GLfloat cz);
 
 	// Fields related to the shader and uniforms.
 	ShaderProgram m_shader;
