@@ -91,6 +91,7 @@ void A1::init()
 	// To draw multiple cubes with a single set of vao & vbo
 
 	initGrid();
+	initWall();
 	initAvatar();
 
 	// Set up initial view and projection matrices (need to do this here,
@@ -152,7 +153,168 @@ GLuint A1::compileShader(std::string shader, GLenum type) {
 
 }
 
-void A1::updateWall()
+void A1::initWall()
+{
+	//----------------------------------------------------------------------------------------
+	// Specify vertices
+
+	// Eight 3-dimensional vertices
+	const vector<GLfloat> cubeData = 
+	{
+		// Vertex data
+		0.0f, 0.0f, 0.0f, 
+		0.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 1.0f,
+
+		0.0f, 0.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f, 
+		1.0f, 0.0f, 1.0f,
+
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 1.0f, 1.0f, 
+		1.0f, 1.0f, 1.0f,
+
+		0.0f, 1.0f, 0.0f, 
+		1.0f, 1.0f, 0.0f, 
+		1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 
+		1.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 0.0f,
+
+		1.0f, 1.0f, 1.0f, 
+		1.0f, 1.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 1.0f, 
+		0.0f, 0.0f, 1.0f, 
+		0.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 1.0f, 
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 1.0f, 
+		0.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 1.0f,
+
+		0.0f, 1.0f, 1.0f, 
+		1.0f, 1.0f, 1.0f, 
+		1.0f, 0.0f, 1.0f,
+
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 0.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 0.0f, 
+		1.0f, 1.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f,
+	};
+
+	vector<GLfloat> vertexData = {};
+
+	for (int x = 0; x < DIM; x++) {
+		for (int z = 0; z < DIM; z++) {
+			for (int y = 0; y <= WALL_HEIGHT_MAX; y++) {
+				vector<GLfloat> temp = cubeData;
+
+				for (int i = 0; i < temp.size(); i++) {
+					if (i % 3 == 0) temp[i] += (GLfloat)x;
+					else if (i % 3 == 1) temp[i] += (GLfloat)y;
+					else if (i % 3 == 2) temp[i] += (GLfloat)z;
+				}
+
+				vertexData.insert(vertexData.end(), temp.begin(), temp.end());
+			}
+		}
+	}
+
+	// Set things up on GPU
+	glGenVertexArrays(1, &m_wall_vao_2);
+	glBindVertexArray(m_wall_vao_2);
+
+	// Start generating Vertex Buffer Objects (VBO)
+	glGenBuffers(1, &m_wall_vbo_2);
+	glBindBuffer(GL_ARRAY_BUFFER, m_wall_vbo_2);
+	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData.size(),
+		vertexData.data(), GL_STATIC_DRAW );
+
+	// Vertex information
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(0, 
+						  3, 
+						  GL_FLOAT, 
+						  GL_FALSE,
+						  sizeof(GL_FLOAT)*3,
+						  0);
+
+	// Reset state to prevent rogue code from messing with *my* 
+	// stuff!
+	glBindVertexArray( 0 );
+	glDisableVertexAttribArray(0);
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+
+	CHECK_GL_ERRORS; 
+}
+
+void A1::initGrid()
+{
+	// Total of the grid is 18*18, live area is 16*16
+	// There are 19 * 19 vertices in a layer
+	size_t sz = 3 * 2 * 2 * (DIM+3);
+
+	float *verts = new float[ sz ];
+	size_t ct = 0;
+	for( int idx = 0; idx < DIM+3; ++idx ) {
+		
+		verts[ ct ] = -1;
+		verts[ ct+1 ] = 0;
+		verts[ ct+2 ] = idx-1;
+		verts[ ct+3 ] = DIM+1;
+		verts[ ct+4 ] = 0;
+		verts[ ct+5 ] = idx-1;
+		ct += 6;
+
+		verts[ ct ] = idx-1;
+		verts[ ct+1 ] = 0;
+		verts[ ct+2 ] = -1;
+		verts[ ct+3 ] = idx-1;
+		verts[ ct+4 ] = 0;
+		verts[ ct+5 ] = DIM+1;
+		ct += 6;
+		
+	}
+
+	// Create the vertex array to record buffer assignments.
+	glGenVertexArrays( 1, &m_grid_vao );
+	glBindVertexArray( m_grid_vao );
+
+	// Create the grid vertex buffer
+	glGenBuffers( 1, &m_grid_vbo );
+	glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
+	glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float),
+		verts, GL_STATIC_DRAW );
+
+	// Specify the means of extracting the position values properly.
+	GLint posAttrib = m_shader.getAttribLocation( "position" );
+	glEnableVertexAttribArray( posAttrib );
+	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+
+	// Reset state to prevent rogue code from messing with *my* 
+	// stuff!
+	glBindVertexArray( 0 );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+
+	// OpenGL has the buffer now, there's no need for us to keep a copy.
+	delete [] verts;
+
+	CHECK_GL_ERRORS;
+}
+
+void A1::updateWallSlow()
 {
 	//----------------------------------------------------------------------------------------
 	// Specify vertices
@@ -319,61 +481,6 @@ void A1::updateWall()
 	CHECK_GL_ERRORS; 
 }
 
-void A1::initGrid()
-{
-	// Total of the grid is 18*18, live area is 16*16
-	// There are 19 * 19 vertices in a layer
-	size_t sz = 3 * 2 * 2 * (DIM+3);
-
-	float *verts = new float[ sz ];
-	size_t ct = 0;
-	for( int idx = 0; idx < DIM+3; ++idx ) {
-		
-		verts[ ct ] = -1;
-		verts[ ct+1 ] = 0;
-		verts[ ct+2 ] = idx-1;
-		verts[ ct+3 ] = DIM+1;
-		verts[ ct+4 ] = 0;
-		verts[ ct+5 ] = idx-1;
-		ct += 6;
-
-		verts[ ct ] = idx-1;
-		verts[ ct+1 ] = 0;
-		verts[ ct+2 ] = -1;
-		verts[ ct+3 ] = idx-1;
-		verts[ ct+4 ] = 0;
-		verts[ ct+5 ] = DIM+1;
-		ct += 6;
-		
-	}
-
-	// Create the vertex array to record buffer assignments.
-	glGenVertexArrays( 1, &m_grid_vao );
-	glBindVertexArray( m_grid_vao );
-
-	// Create the grid vertex buffer
-	glGenBuffers( 1, &m_grid_vbo );
-	glBindBuffer( GL_ARRAY_BUFFER, m_grid_vbo );
-	glBufferData( GL_ARRAY_BUFFER, sz*sizeof(float),
-		verts, GL_STATIC_DRAW );
-
-	// Specify the means of extracting the position values properly.
-	GLint posAttrib = m_shader.getAttribLocation( "position" );
-	glEnableVertexAttribArray( posAttrib );
-	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
-
-	// Reset state to prevent rogue code from messing with *my* 
-	// stuff!
-	glBindVertexArray( 0 );
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
-
-	// OpenGL has the buffer now, there's no need for us to keep a copy.
-	delete [] verts;
-
-	CHECK_GL_ERRORS;
-}
-
 void A1::initAvatar() {
 	vector<GLfloat> cubeData = 
 	{
@@ -437,8 +544,8 @@ void A1::initAvatar() {
 		if (i % 3 == 0 || i % 3 == 2) cubeData[i] += 0.125;
 	}
 
-	for (int x = -1; x <= 16; x++) {
-		for (int z = -1; z <= 16; z++) {
+	for (int x = 0; x < DIM; x++) {
+		for (int z = 0; z < DIM; z++) {
 			vector<GLfloat> temp = cubeData;
 
 			for (int i = 0; i < temp.size(); i++) {
@@ -487,7 +594,7 @@ void A1::initAvatar() {
 void A1::appLogic()
 {
 	// Place per frame, application logic here ...
-	updateWall();
+	// updateWallSlow();
 }
 
 //----------------------------------------------------------------------------------------
@@ -608,15 +715,15 @@ void A1::drawAvatar()
 		// Draw the cube
 		glBindVertexArray(m_avatar_vao);
 		glUniform3f( col_uni, 1, 0, 0 );
-		glBindBuffer(GL_ARRAY_BUFFER, m_avatar_vao);
+		glBindBuffer(GL_ARRAY_BUFFER, m_avatar_vbo);
 		// 12 is the number of triangles needed for each cube
 		// 3*12 is for a single cube
 		// x and z are coordinates with respect to grid
-		int x = 3;
-		int z = 14;
 
-		// glDrawArrays(GL_TRIANGLES, 0, (DIM+2)*(DIM+2)*(3*12));
-		glDrawArrays(GL_TRIANGLES, (z+x*(DIM+2))*(3*12), (3*12));
+		int r = m_maze->getAvatarR();
+		int c = m_maze->getAvatarC();
+
+		glDrawArrays(GL_TRIANGLES, (c+r*(DIM))*(3*12), (3*12));
 
 	// m_cube_shader.disable();
 	m_shader.disable();
@@ -629,7 +736,48 @@ void A1::drawAvatar()
 	CHECK_GL_ERRORS;
 }
 
-void A1::drawWall()
+void A1::drawWall() {
+	// Create a global transformation for the model (centre it).
+	mat4 W;
+	W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
+	
+	// m_cube_shader.enable();
+	m_shader.enable();
+		glEnable( GL_DEPTH_TEST );
+
+		glUniformMatrix4fv( P_uni, 1, GL_FALSE, value_ptr( proj ) );
+		glUniformMatrix4fv( V_uni, 1, GL_FALSE, value_ptr( view ) );
+		glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
+
+		// Draw the cube
+		glBindVertexArray(m_wall_vao_2);
+		glUniform3f( col_uni, 0, 0, 0 );
+		glBindBuffer(GL_ARRAY_BUFFER, m_wall_vbo_2);
+		
+		for (int x = 0; x < DIM; x++) {
+			for (int z = 0; z < DIM; z++) {
+				if (m_maze->getValue(z, x) == 1) {
+					glDrawArrays(GL_TRIANGLES, 
+								(DIM*x + z)*(WALL_HEIGHT_MAX+1)*(3*12), 
+								m_wall_height*(3*12));
+				}
+			}
+		}
+
+		// Actually perform the draw
+	
+	// m_cube_shader.disable();
+	m_shader.disable();
+
+	// Restore defaults
+	glBindVertexArray( 0 ); 
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+
+	CHECK_GL_ERRORS;
+}
+
+void A1::drawWallSlow()
 {
 	// Create a global transformation for the model (centre it).
 	mat4 W;
@@ -669,6 +817,7 @@ void A1::draw()
 {
 	drawGrid();
 
+	// drawWall();
 	drawWall();
 
 	drawAvatar();
@@ -781,6 +930,8 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 		if (key == GLFW_KEY_R) {
 			m_maze->reset();
 			m_maze->printMaze();
+			printf("Avatar position: (%d, %d)\n", 
+				m_maze->getAvatarR(), m_maze->getAvatarC());
 
 			eventHandled = true;
 		}
@@ -805,24 +956,26 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 			eventHandled = true;
 		}
 
-		if (key == GLFW_KEY_UP) {
+		if (key == GLFW_KEY_UP || key == GLFW_KEY_DOWN ||
+			key == GLFW_KEY_LEFT || key == GLFW_KEY_RIGHT) {
+			if (key == GLFW_KEY_UP) {
+				m_maze->moveAvatarUp(false);
+			}
 
-			cout << "up arrow pressed" << endl;
+			if (key == GLFW_KEY_DOWN) {
+				m_maze->moveAvatarDown(false);
+			}
 
-			eventHandled = true;
-		}
+			if (key == GLFW_KEY_LEFT) {
+				m_maze->moveAvatarLeft(false);
+			}
 
-		if (key == GLFW_KEY_DOWN) {
-
-			eventHandled = true;
-		}
-
-		if (key == GLFW_KEY_LEFT) {
-
-			eventHandled = true;
-		}
-
-		if (key == GLFW_KEY_RIGHT) {
+			if (key == GLFW_KEY_RIGHT) {
+				m_maze->moveAvatarRight(false);
+			}
+			m_maze->printMaze();
+			printf("Avatar position: (%d, %d)\n", 
+				m_maze->getAvatarR(), m_maze->getAvatarC());
 
 			eventHandled = true;
 		}

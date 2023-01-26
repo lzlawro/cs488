@@ -35,12 +35,14 @@ private:
 	// Initialization methods
 	void initGrid();
 	void initAvatar();
+	void initWall();
 
 	// Update (per frame) methods
-	void updateWall();
+	void updateWallSlow();
 
 	// Draw methods
 	void drawGrid();
+	void drawWallSlow();
 	void drawWall();
 	void drawAvatar();
 
@@ -69,6 +71,8 @@ private:
 	// Fields related to wall geomotry
 	GLuint m_wall_vao;
 	GLuint m_wall_vbo;
+	GLuint m_wall_vao_2;
+	GLuint m_wall_vbo_2;
 
 	// Fields related to avatar geomotry
 	GLuint m_avatar_vao;

@@ -59,23 +59,42 @@ void Maze::setAvatarValue(int x, int y)
 
 void Maze::moveAvatarUp(bool has_shift)
 {
-	int avatarR = getAvatarR();
-	int avatarC = getAvatarR();
+	int r = getAvatarR();
+	int c = getAvatarC();
+
+	if (c-1 >= 0) {
+		setAvatarValue(r, c-1);
+	}
 }
 
 void Maze::moveAvatarDown(bool has_shift)
 {
+	int r = getAvatarR();
+	int c = getAvatarC();
 
+	if (c+1 < m_dim) {
+		setAvatarValue(r, c+1);
+	}
 }
 
 void Maze::moveAvatarLeft(bool has_shift)
 {
+	int r = getAvatarR();
+	int c = getAvatarC();
 
+	if (r-1 >= 0) {
+		setAvatarValue(r-1, c);
+	}
 }
 
 void Maze::moveAvatarRight(bool has_shift)
 {
+	int r = getAvatarR();
+	int c = getAvatarC();
 
+	if (r+1 < m_dim) {
+		setAvatarValue(r+1, c);
+	}
 }
 
 int perm[24][4] = {
