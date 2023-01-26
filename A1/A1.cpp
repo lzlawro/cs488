@@ -38,6 +38,14 @@ A1::~A1()
 	delete m_maze;
 }
 
+void A1::resetParameters() {
+	m_prev_xpos = 0.0f;
+	m_is_dragging = false;
+	m_persistence = 0.0f;
+	m_rotation = 0.0f;
+	m_scale = 1.0f;
+}
+
 //----------------------------------------------------------------------------------------
 /*
  * Called once, at program start.
@@ -79,18 +87,13 @@ void A1::init()
 	M_uni = m_shader.getUniformLocation( "M" );
 	col_uni = m_shader.getUniformLocation( "colour" );
 
-	// Build cube shader
-	// m_cube_shader.generateProgramObject();
-	// m_cube_shader.attachVertexShader(
-	// 	getAssetFilePath("CubeVertexShader.vs").c_str());
-	// m_cube_shader.attachFragmentShader(
-	// 	getAssetFilePath("CubeFragmentShader.fs").c_str());
-	// m_cube_shader.link();
+	resetParameters();
 
 	// Generate new vaos and vbos for the cubes
 	// To draw multiple cubes with a single set of vao & vbo
 
 	initGrid();
+	initFloor();
 	initWall();
 	initAvatar();
 
@@ -151,6 +154,51 @@ GLuint A1::compileShader(std::string shader, GLenum type) {
 
 	return shaderId;
 
+}
+
+void A1::initFloor() {
+	const vector<GLfloat> vertexData = {
+		0.0f, 0.0f, 0.0f,
+		(GLfloat)(DIM), 0.0f, 0.0f,
+		(GLfloat)(DIM), 0.0f, (GLfloat)(DIM),
+		0.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, (GLfloat)(DIM),
+		(GLfloat)(DIM), 0.0f, (GLfloat)(DIM),
+	};
+
+	// Set things up on GPU
+	glGenVertexArrays(1, &m_floor_vao);
+	glBindVertexArray(m_floor_vao);
+
+	// Start generating Vertex Buffer Objects (VBO)
+	glGenBuffers(1, &m_floor_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, m_floor_vbo);
+	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData.size(),
+		vertexData.data(), GL_STATIC_DRAW );
+
+	// Specify the means of extracting the position values properly.
+	GLint posAttrib = m_shader.getAttribLocation( "position" );
+	glEnableVertexAttribArray( posAttrib );
+	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+
+	// Vertex information
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(0, 
+						  3, 
+						  GL_FLOAT, 
+						  GL_FALSE,
+						  sizeof(GL_FLOAT)*3,
+						  0);
+
+	// Reset state to prevent rogue code from messing with *my* 
+	// stuff!
+	glBindVertexArray( 0 );
+	glDisableVertexAttribArray(0);
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+
+	CHECK_GL_ERRORS; 
 }
 
 void A1::initWall()
@@ -238,6 +286,11 @@ void A1::initWall()
 	glBindBuffer(GL_ARRAY_BUFFER, m_wall_vbo_2);
 	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData.size(),
 		vertexData.data(), GL_STATIC_DRAW );
+
+	// Specify the means of extracting the position values properly.
+	GLint posAttrib = m_shader.getAttribLocation( "position" );
+	glEnableVertexAttribArray( posAttrib );
+	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
 
 	// Vertex information
 	glEnableVertexAttribArray(0);
@@ -407,6 +460,11 @@ void A1::updateWallSlow()
 	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData.size(),
 		vertexData.data(), GL_STATIC_DRAW );
 
+	// Specify the means of extracting the position values properly.
+	GLint posAttrib = m_shader.getAttribLocation( "position" );
+	glEnableVertexAttribArray( posAttrib );
+	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+
 	// Why does deleting this portion not matter?
 	//----------------------------------------------------------------------------------------
 	// // Specify the means of extracting the position values properly.
@@ -566,6 +624,11 @@ void A1::initAvatar() {
 	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData.size(),
 		vertexData.data(), GL_STATIC_DRAW );
 
+	// Specify the means of extracting the position values properly.
+	GLint posAttrib = m_shader.getAttribLocation( "position" );
+	glEnableVertexAttribArray( posAttrib );
+	glVertexAttribPointer( posAttrib, 3, GL_FLOAT, GL_FALSE, 0, nullptr );
+
 	// Vertex information
 	glEnableVertexAttribArray(0);
 
@@ -594,7 +657,9 @@ void A1::initAvatar() {
 void A1::appLogic()
 {
 	// Place per frame, application logic here ...
+
 	// updateWallSlow();
+	m_rotation += m_persistence;
 }
 
 //----------------------------------------------------------------------------------------
@@ -704,7 +769,6 @@ void A1::drawAvatar()
 	mat4 W;
 	W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
 	
-	// m_cube_shader.enable();
 	m_shader.enable();
 		glEnable( GL_DEPTH_TEST );
 
@@ -815,12 +879,78 @@ void A1::drawWallSlow()
  */
 void A1::draw()
 {
-	drawGrid();
+	// Create a global transformation for the model (centre it).
+	mat4 W;
+	W = glm::scale(W, vec3(m_scale));
+	W = glm::rotate(W, 
+					2.0f * pi<float>() * (m_rotation), 
+					vec3(0.0f, 1.0f, 0.0f));
+	W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
 
-	// drawWall();
-	drawWall();
+	
 
-	drawAvatar();
+	m_shader.enable();
+
+		glEnable( GL_DEPTH_TEST );
+
+		glUniformMatrix4fv( P_uni, 1, GL_FALSE, value_ptr( proj ) );
+		glUniformMatrix4fv( V_uni, 1, GL_FALSE, value_ptr( view ) );
+		glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
+
+		// Just draw the grid for now.
+		glBindVertexArray( m_grid_vao );
+		glUniform3f( col_uni, 1, 1, 1 );
+		glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
+
+		// Draw floor
+
+		glBindVertexArray(m_floor_vao);
+		glUniform3f(col_uni, 0, 0, 0.5f);
+		glBindBuffer(GL_ARRAY_BUFFER, m_floor_vbo);
+
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+
+		// Draw wall
+		glBindVertexArray(m_wall_vao_2);
+		glUniform3f( col_uni, 0, 0, 0 );
+		glBindBuffer(GL_ARRAY_BUFFER, m_wall_vbo_2);
+		
+		for (int x = 0; x < DIM; x++) {
+			for (int z = 0; z < DIM; z++) {
+				if (m_maze->getValue(z, x) == 1) {
+					glDrawArrays(GL_TRIANGLES, 
+								(DIM*x + z)*(WALL_HEIGHT_MAX+1)*(3*12), 
+								m_wall_height*(3*12));
+				}
+			}
+		}
+
+		// Actually perform the draw
+	
+		// m_cube_shader.disable();
+
+		// Draw avatar
+		glBindVertexArray(m_avatar_vao);
+		glUniform3f( col_uni, 1, 0, 0 );
+		glBindBuffer(GL_ARRAY_BUFFER, m_avatar_vbo);
+		// 12 is the number of triangles needed for each cube
+		// 3*12 is for a single cube
+		// x and z are coordinates with respect to grid
+
+		int r = m_maze->getAvatarR();
+		int c = m_maze->getAvatarC();
+
+		glDrawArrays(GL_TRIANGLES, (c+r*(DIM))*(3*12), (3*12));
+
+	// m_cube_shader.disable();
+	m_shader.disable();
+
+	// Restore defaults
+	glBindVertexArray( 0 ); 
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+
+	CHECK_GL_ERRORS;
 }
 
 //----------------------------------------------------------------------------------------
@@ -860,6 +990,14 @@ bool A1::mouseMoveEvent(double xPos, double yPos)
 		// Probably need some instance variables to track the current
 		// rotation amount, and maybe the previous X position (so 
 		// that you can rotate relative to the *change* in X.
+		if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_1)) {
+			m_rotation += (xPos - m_prev_xpos) / 16000.0f;
+			m_persistence += (xPos - m_prev_xpos) / 32000.0f;
+
+			m_is_dragging = true;
+		}
+		m_prev_xpos = xPos;
+		eventHandled = true;
 	}
 
 	return eventHandled;
@@ -875,6 +1013,25 @@ bool A1::mouseButtonInputEvent(int button, int actions, int mods) {
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
 		// The user clicked in the window.  If it's the left
 		// mouse button, initiate a rotation.
+		if (actions == GLFW_PRESS && button == GLFW_MOUSE_BUTTON_LEFT) {
+			m_is_dragging = false;
+
+			eventHandled = true;
+
+			// cout << "m1 pressed" << endl;
+		}
+		if (actions == GLFW_RELEASE && button == GLFW_MOUSE_BUTTON_LEFT) {
+			if (m_is_dragging) {
+				m_is_dragging = !m_is_dragging;
+			} else {
+				m_persistence = 0.0f;
+			}
+
+			eventHandled = true;
+
+			// cout << "m1 released" << endl;
+
+		}
 	}
 
 	return eventHandled;
@@ -886,6 +1043,28 @@ bool A1::mouseButtonInputEvent(int button, int actions, int mods) {
  */
 bool A1::mouseScrollEvent(double xOffSet, double yOffSet) {
 	bool eventHandled(false);
+
+	if (yOffSet > 0.0f) {
+		if (m_scale <= 5.0f) {
+			if (m_scale >= 1.0f) {
+				m_scale += 0.25f;
+			} else if (m_scale >= 0.4f) {
+				m_scale += 0.1f;
+			} else {
+				m_scale += 0.025f;
+			}
+		}
+	} else {
+		if (m_scale >= 0.01f) {
+			if (m_scale >= 1.0f) {
+				m_scale -= 0.25f;
+			} else if (m_scale >= 0.1f) {
+				m_scale -= 0.1f;
+			} else {
+				m_scale -= 0.005f;
+			}
+		}
+	}
 
 	// Zoom in or out.
 
@@ -921,6 +1100,7 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 		}
 
 		if (key == GLFW_KEY_D) {
+			m_maze->setAvatarValue(0,0);
 			m_maze->digMaze();
 			m_maze->printMaze();
 
@@ -928,6 +1108,8 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 		}
 
 		if (key == GLFW_KEY_R) {
+			resetParameters();
+			m_maze->setAvatarValue(0,0);
 			m_maze->reset();
 			m_maze->printMaze();
 			printf("Avatar position: (%d, %d)\n", 
@@ -959,23 +1141,32 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 		if (key == GLFW_KEY_UP || key == GLFW_KEY_DOWN ||
 			key == GLFW_KEY_LEFT || key == GLFW_KEY_RIGHT) {
 			if (key == GLFW_KEY_UP) {
+				if (mods == GLFW_MOD_SHIFT)
+				m_maze->moveAvatarUp(true);
+				else
 				m_maze->moveAvatarUp(false);
 			}
 
 			if (key == GLFW_KEY_DOWN) {
+				if (mods == GLFW_MOD_SHIFT)
+				m_maze->moveAvatarDown(true);
+				else
 				m_maze->moveAvatarDown(false);
 			}
 
 			if (key == GLFW_KEY_LEFT) {
+				if (mods == GLFW_MOD_SHIFT)
+				m_maze->moveAvatarLeft(true);
+				else
 				m_maze->moveAvatarLeft(false);
 			}
 
 			if (key == GLFW_KEY_RIGHT) {
+				if (mods == GLFW_MOD_SHIFT)
+				m_maze->moveAvatarRight(true);
+				else
 				m_maze->moveAvatarRight(false);
 			}
-			m_maze->printMaze();
-			printf("Avatar position: (%d, %d)\n", 
-				m_maze->getAvatarR(), m_maze->getAvatarC());
 
 			eventHandled = true;
 		}

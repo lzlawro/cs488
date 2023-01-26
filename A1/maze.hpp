@@ -36,8 +36,6 @@ private:
 	int m_avatar_r;
 	int m_avatar_c;
 
-	unsigned int m_wall_count;
-
 	int *m_values;
 	void recDigMaze(int r, int c);
 	int numNeighbors(int r, int c);

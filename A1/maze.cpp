@@ -63,7 +63,10 @@ void Maze::moveAvatarUp(bool has_shift)
 	int c = getAvatarC();
 
 	if (c-1 >= 0) {
-		setAvatarValue(r, c-1);
+		if(getValue(c-1, r) != 1 || has_shift) {
+			setAvatarValue(r, c-1);
+			if (has_shift) setValue(c-1,r,0);
+		}
 	}
 }
 
@@ -73,7 +76,10 @@ void Maze::moveAvatarDown(bool has_shift)
 	int c = getAvatarC();
 
 	if (c+1 < m_dim) {
-		setAvatarValue(r, c+1);
+		if(getValue(c+1, r) != 1 || has_shift) {
+			setAvatarValue(r, c+1);
+			if (has_shift) setValue(c+1,r,0);
+		}
 	}
 }
 
@@ -83,7 +89,10 @@ void Maze::moveAvatarLeft(bool has_shift)
 	int c = getAvatarC();
 
 	if (r-1 >= 0) {
-		setAvatarValue(r-1, c);
+		if(getValue(c, r-1) != 1 || has_shift) {
+			setAvatarValue(r-1, c);
+			if (has_shift) setValue(c,r-1,0);
+		}
 	}
 }
 
@@ -93,7 +102,10 @@ void Maze::moveAvatarRight(bool has_shift)
 	int c = getAvatarC();
 
 	if (r+1 < m_dim) {
-		setAvatarValue(r+1, c);
+		if(getValue(c, r+1) != 1 || has_shift) {
+			setAvatarValue(r+1, c);
+			if (has_shift) setValue(c,r+1,0);
+		}
 	}
 }
 
@@ -188,6 +200,8 @@ void Maze::recDigMaze(int r, int c) {
 
 void Maze::digMaze()
 {
+	setAvatarValue(0,0);
+
 	int i,j;
 	// set all values to 1
 	for (i=0;i<m_dim;i++) {

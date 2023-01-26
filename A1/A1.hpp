@@ -36,6 +36,8 @@ private:
 	void initGrid();
 	void initAvatar();
 	void initWall();
+	void initFloor();
+	void resetParameters();
 
 	// Update (per frame) methods
 	void updateWallSlow();
@@ -81,6 +83,13 @@ private:
 	// Matrices controlling the camera and projection.
 	glm::mat4 proj;
 	glm::mat4 view;
+
+	// Fields related to input/output
+	double m_prev_xpos;
+	bool m_is_dragging;
+	float m_persistence;
+	float m_rotation;
+	float m_scale;
 
 	float colour[3];
 	float cube_colour[3];
