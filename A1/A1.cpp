@@ -17,6 +17,10 @@
 using namespace glm;
 using namespace std;
 
+static const size_t WALL = 0;
+static const size_t FLOOR = 1;
+static const size_t AVATAR = 2;
+
 static const size_t DIM = 16;
 static const size_t WALL_HEIGHT_MIN = 0;
 static const size_t WALL_HEIGHT_MAX = 10;
@@ -25,10 +29,27 @@ static const size_t WALL_HEIGHT_MAX = 10;
 // Constructor
 A1::A1()
 	: current_col( 0 )
+	, prev_col( -1 )
 {
 	colour[0] = 0.0f;
 	colour[1] = 0.0f;
 	colour[2] = 0.0f;
+
+	
+	// ( col_uni, 0, 0, 0 );
+	wall_colour[0] = 0.0f;
+	wall_colour[1] = 0.0f;
+	wall_colour[2] = 0.0f;
+	
+	// (col_uni, 0, 0, 0.5f);
+	floor_colour[0] = 0.0f;
+	floor_colour[1] = 0.0f;
+	floor_colour[2] = 0.5f;
+
+	// ( col_uni, 1, 0, 0 );
+	avatar_colour[0] = 1.0f;
+	avatar_colour[1] = 0.0f;
+	avatar_colour[2] = 0.0f;
 }
 
 //----------------------------------------------------------------------------------------
@@ -696,20 +717,19 @@ void A1::guiLogic()
 		ImGui::ColorEdit3( "##Colour", colour );
 
 		ImGui::PushID( 0 );
-		if( ImGui::RadioButton( "Wall colour", &current_col, 0 ) ) {
+		if( ImGui::RadioButton( "Wall Colour", &current_col, WALL ) ) {
 			// Select this colour.
-			cout << "current_col = " << current_col << endl;
 		}
 		ImGui::SameLine();
-		if( ImGui::RadioButton( "Floor colour", &current_col, 1 ) ) {
+		if( ImGui::RadioButton( "Floor Colour", &current_col, FLOOR ) ) {
 			// Select this colour.
-			cout << "current_col = " << current_col << endl;
 		}
 		ImGui::SameLine();
-		if( ImGui::RadioButton( "Avatar colour", &current_col, 2 ) ) {
+		if( ImGui::RadioButton( "Avatar Colour", &current_col, AVATAR ) ) {
 			// Select this colour.
-			cout << "current_col = " << current_col << endl;
 		}
+
+		prev_col = current_col;
 
 		ImGui::PopID();
 
@@ -730,115 +750,6 @@ void A1::guiLogic()
 	if( showTestWindow ) {
 		ImGui::ShowTestWindow( &showTestWindow );
 	}
-}
-
-void A1::drawGrid()
-{
-	// Create a global transformation for the model (centre it).
-	mat4 W;
-	W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
-
-	m_shader.enable();
-		glEnable( GL_DEPTH_TEST );
-
-		glUniformMatrix4fv( P_uni, 1, GL_FALSE, value_ptr( proj ) );
-		glUniformMatrix4fv( V_uni, 1, GL_FALSE, value_ptr( view ) );
-		glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
-
-		// Just draw the grid for now.
-		glBindVertexArray( m_grid_vao );
-		glUniform3f( col_uni, 1, 1, 1 );
-		glDrawArrays( GL_LINES, 0, (3+DIM)*4 );
-
-		// Draw the cubes (?)
-
-		// Highlight the active square.
-	m_shader.disable();
-
-	// Restore defaults
-	glBindVertexArray( 0 ); 
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
-
-	CHECK_GL_ERRORS;
-}
-
-void A1::drawAvatar()
-{
-	// Create a global transformation for the model (centre it).
-	mat4 W;
-	W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
-	
-	m_shader.enable();
-		glEnable( GL_DEPTH_TEST );
-
-		glUniformMatrix4fv( P_uni, 1, GL_FALSE, value_ptr( proj ) );
-		glUniformMatrix4fv( V_uni, 1, GL_FALSE, value_ptr( view ) );
-		glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
-
-		// Draw the cube
-		glBindVertexArray(m_avatar_vao);
-		glUniform3f( col_uni, 1, 0, 0 );
-		glBindBuffer(GL_ARRAY_BUFFER, m_avatar_vbo);
-		// 12 is the number of triangles needed for each cube
-		// 3*12 is for a single cube
-		// x and z are coordinates with respect to grid
-
-		int r = m_maze->getAvatarR();
-		int c = m_maze->getAvatarC();
-
-		glDrawArrays(GL_TRIANGLES, (c+r*(DIM))*(3*12), (3*12));
-
-	// m_cube_shader.disable();
-	m_shader.disable();
-
-	// Restore defaults
-	glBindVertexArray( 0 ); 
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
-
-	CHECK_GL_ERRORS;
-}
-
-void A1::drawWall() {
-	// Create a global transformation for the model (centre it).
-	mat4 W;
-	W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
-	
-	// m_cube_shader.enable();
-	m_shader.enable();
-		glEnable( GL_DEPTH_TEST );
-
-		glUniformMatrix4fv( P_uni, 1, GL_FALSE, value_ptr( proj ) );
-		glUniformMatrix4fv( V_uni, 1, GL_FALSE, value_ptr( view ) );
-		glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
-
-		// Draw the cube
-		glBindVertexArray(m_wall_vao_2);
-		glUniform3f( col_uni, 0, 0, 0 );
-		glBindBuffer(GL_ARRAY_BUFFER, m_wall_vbo_2);
-		
-		for (int x = 0; x < DIM; x++) {
-			for (int z = 0; z < DIM; z++) {
-				if (m_maze->getValue(z, x) == 1) {
-					glDrawArrays(GL_TRIANGLES, 
-								(DIM*x + z)*(WALL_HEIGHT_MAX+1)*(3*12), 
-								m_wall_height*(3*12));
-				}
-			}
-		}
-
-		// Actually perform the draw
-	
-	// m_cube_shader.disable();
-	m_shader.disable();
-
-	// Restore defaults
-	glBindVertexArray( 0 ); 
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
-
-	CHECK_GL_ERRORS;
 }
 
 void A1::drawWallSlow()
@@ -881,7 +792,7 @@ void A1::draw()
 {
 	// Create a global transformation for the model (centre it).
 	mat4 W;
-	W = glm::scale(W, vec3(m_scale));
+	W = glm::scale(W, vec3(m_scale, m_scale, m_scale));
 	W = glm::rotate(W, 
 					2.0f * pi<float>() * (m_rotation), 
 					vec3(0.0f, 1.0f, 0.0f));
@@ -905,14 +816,34 @@ void A1::draw()
 		// Draw floor
 
 		glBindVertexArray(m_floor_vao);
-		glUniform3f(col_uni, 0, 0, 0.5f);
+		// if (current_col == FLOOR && current_col != prev_col) {
+		// 	glUniform3f(col_uni, 
+		// 				colour[0], 
+		// 				colour[1],
+		// 				colour[2]);
+		// } else {
+			glUniform3f(col_uni, 
+						floor_colour[0], 
+						floor_colour[1],
+						floor_colour[2]);
+		// }
 		glBindBuffer(GL_ARRAY_BUFFER, m_floor_vbo);
 
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		// Draw wall
 		glBindVertexArray(m_wall_vao_2);
-		glUniform3f( col_uni, 0, 0, 0 );
+		// if (current_col == WALL && current_col != prev_col) {
+		// 	glUniform3f(col_uni, 
+		// 				colour[0], 
+		// 				colour[1],
+		// 				colour[2]);
+		// } else {
+			glUniform3f(col_uni, 
+						wall_colour[0], 
+						wall_colour[1],
+						wall_colour[2]);
+		// }
 		glBindBuffer(GL_ARRAY_BUFFER, m_wall_vbo_2);
 		
 		for (int x = 0; x < DIM; x++) {
@@ -931,7 +862,17 @@ void A1::draw()
 
 		// Draw avatar
 		glBindVertexArray(m_avatar_vao);
-		glUniform3f( col_uni, 1, 0, 0 );
+		// if (current_col == AVATAR && current_col != prev_col) {
+		// 	glUniform3f(col_uni, 
+		// 				colour[0], 
+		// 				colour[1],
+		// 				colour[2]);
+		// } else {
+			glUniform3f(col_uni, 
+						avatar_colour[0], 
+						avatar_colour[1],
+						avatar_colour[2]);
+		// }
 		glBindBuffer(GL_ARRAY_BUFFER, m_avatar_vbo);
 		// 12 is the number of triangles needed for each cube
 		// 3*12 is for a single cube

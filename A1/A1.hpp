@@ -43,10 +43,7 @@ private:
 	void updateWallSlow();
 
 	// Draw methods
-	void drawGrid();
 	void drawWallSlow();
-	void drawWall();
-	void drawAvatar();
 
 	// Maze member
 	Maze *m_maze;
@@ -92,7 +89,10 @@ private:
 	float m_scale;
 
 	float colour[3];
-	float cube_colour[3];
+	GLfloat floor_colour[3];
+	GLfloat wall_colour[3];
+	GLfloat avatar_colour[3];
 
 	int current_col;
+	int prev_col;
 };
