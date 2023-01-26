@@ -57,6 +57,27 @@ void Maze::setAvatarValue(int x, int y)
 	m_avatar_c = y;
 }
 
+void Maze::moveAvatarUp(bool has_shift)
+{
+	int avatarR = getAvatarR();
+	int avatarC = getAvatarR();
+}
+
+void Maze::moveAvatarDown(bool has_shift)
+{
+
+}
+
+void Maze::moveAvatarLeft(bool has_shift)
+{
+
+}
+
+void Maze::moveAvatarRight(bool has_shift)
+{
+
+}
+
 int perm[24][4] = {
 	0,1,2,3,
 	0,1,3,2,
@@ -183,5 +204,4 @@ void Maze::digMaze()
 	printf("Start location: %d\n", s);
 
 	setAvatarValue(s, m_dim-1);
-
 }

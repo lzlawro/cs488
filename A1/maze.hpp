@@ -21,6 +21,11 @@ public:
 
 	void setAvatarValue(int x, int y);
 
+	void moveAvatarUp(bool has_shift);
+	void moveAvatarDown(bool has_shift);
+	void moveAvatarLeft(bool has_shift);
+	void moveAvatarRight(bool has_shift);
+
 	void digMaze();
 	void printMaze(); // for debugging
 	void printAvatarValue();

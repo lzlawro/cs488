@@ -34,14 +34,15 @@ private:
 
 	// Initialization methods
 	void initGrid();
+	void initAvatar();
 
 	// Update (per frame) methods
 	void updateWall();
-	void updateAvatar();
 
 	// Draw methods
 	void drawGrid();
 	void drawWall();
+	void drawAvatar();
 
 	// Maze member
 	Maze *m_maze;
@@ -61,9 +62,13 @@ private:
 	GLuint m_grid_vao; // Vertex Array Object
 	GLuint m_grid_vbo; // Vertex Buffer Object
 
+	// Floor geometry
+	GLuint m_floor_vao;
+	GLuint m_floor_vbo;
+
 	// Fields related to wall geomotry
-	GLuint m_cube_vao;
-	GLuint m_cube_vbo;
+	GLuint m_wall_vao;
+	GLuint m_wall_vbo;
 
 	// Fields related to avatar geomotry
 	GLuint m_avatar_vao;

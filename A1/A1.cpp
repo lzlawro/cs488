@@ -91,6 +91,7 @@ void A1::init()
 	// To draw multiple cubes with a single set of vao & vbo
 
 	initGrid();
+	initAvatar();
 
 	// Set up initial view and projection matrices (need to do this here,
 	// since it depends on the GLFW window being set up correctly).
@@ -235,12 +236,12 @@ void A1::updateWall()
 	// To draw multiple cubes with a single set of vao & vbo
 
 	// Set things up on GPU
-	glGenVertexArrays(1, &m_cube_vao);
-	glBindVertexArray(m_cube_vao);
+	glGenVertexArrays(1, &m_wall_vao);
+	glBindVertexArray(m_wall_vao);
 
 	// Start generating Vertex Buffer Objects (VBO)
-	glGenBuffers(1, &m_cube_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
+	glGenBuffers(1, &m_wall_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, m_wall_vbo);
 	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData.size(),
 		vertexData.data(), GL_STATIC_DRAW );
 
@@ -373,6 +374,112 @@ void A1::initGrid()
 	CHECK_GL_ERRORS;
 }
 
+void A1::initAvatar() {
+	vector<GLfloat> cubeData = 
+	{
+		// Vertex data
+		0.0f, 0.0f, 0.0f, 
+		0.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 1.0f,
+
+		0.0f, 0.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f, 
+		1.0f, 0.0f, 1.0f,
+
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 1.0f, 1.0f, 
+		1.0f, 1.0f, 1.0f,
+
+		0.0f, 1.0f, 0.0f, 
+		1.0f, 1.0f, 0.0f, 
+		1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 
+		1.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 0.0f,
+
+		1.0f, 1.0f, 1.0f, 
+		1.0f, 1.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 1.0f, 
+		0.0f, 0.0f, 1.0f, 
+		0.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 1.0f, 
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 1.0f, 
+		0.0f, 0.0f, 1.0f, 
+		1.0f, 0.0f, 1.0f,
+
+		0.0f, 1.0f, 1.0f, 
+		1.0f, 1.0f, 1.0f, 
+		1.0f, 0.0f, 1.0f,
+
+		0.0f, 1.0f, 0.0f, 
+		0.0f, 0.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 0.0f, 
+		1.0f, 1.0f, 0.0f, 
+		1.0f, 0.0f, 0.0f,
+	};
+
+	vector<GLfloat> vertexData = {};
+
+	for (auto it = cubeData.begin(); it != cubeData.end(); it++) {
+		*it *= 0.75f;
+	}
+
+	for (int i = 0; i < cubeData.size(); i++) {
+		if (i % 3 == 0 || i % 3 == 2) cubeData[i] += 0.125;
+	}
+
+	for (int x = -1; x <= 16; x++) {
+		for (int z = -1; z <= 16; z++) {
+			vector<GLfloat> temp = cubeData;
+
+			for (int i = 0; i < temp.size(); i++) {
+				if (i % 3 == 0) temp[i] += x;
+				else if (i % 3 == 2) temp[i] += z;
+			}
+
+			vertexData.insert(vertexData.end(), temp.begin(), temp.end());
+		}
+	}
+
+	glGenVertexArrays(1, &m_avatar_vao);
+	glBindVertexArray(m_avatar_vao);
+
+	// Start generating Vertex Buffer Objects (VBO)
+	glGenBuffers(1, &m_avatar_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, m_avatar_vbo);
+	glBufferData( GL_ARRAY_BUFFER, sizeof(GL_FLOAT)*vertexData.size(),
+		vertexData.data(), GL_STATIC_DRAW );
+
+	// Vertex information
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(0, 
+						  3, 
+						  GL_FLOAT, 
+						  GL_FALSE,
+						  sizeof(GL_FLOAT)*3,
+						  0
+						  );
+
+	// Reset state to prevent rogue code from messing with *my* 
+	// stuff!
+	glBindVertexArray( 0 );
+	glDisableVertexAttribArray(0);
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+
+	CHECK_GL_ERRORS; 
+}
+
 //----------------------------------------------------------------------------------------
 /*
  * Called once per frame, before guiLogic().
@@ -414,12 +521,24 @@ void A1::guiLogic()
 		// Prefixing a widget name with "##" keeps it from being
 		// displayed.
 
-		ImGui::PushID( 0 );
 		ImGui::ColorEdit3( "##Colour", colour );
-		ImGui::SameLine();
-		if( ImGui::RadioButton( "##Col", &current_col, 0 ) ) {
+
+		ImGui::PushID( 0 );
+		if( ImGui::RadioButton( "Wall colour", &current_col, 0 ) ) {
 			// Select this colour.
+			cout << "current_col = " << current_col << endl;
 		}
+		ImGui::SameLine();
+		if( ImGui::RadioButton( "Floor colour", &current_col, 1 ) ) {
+			// Select this colour.
+			cout << "current_col = " << current_col << endl;
+		}
+		ImGui::SameLine();
+		if( ImGui::RadioButton( "Avatar colour", &current_col, 2 ) ) {
+			// Select this colour.
+			cout << "current_col = " << current_col << endl;
+		}
+
 		ImGui::PopID();
 
 /*
@@ -472,6 +591,44 @@ void A1::drawGrid()
 	CHECK_GL_ERRORS;
 }
 
+void A1::drawAvatar()
+{
+	// Create a global transformation for the model (centre it).
+	mat4 W;
+	W = glm::translate( W, vec3( -float(DIM)/2.0f, 0, -float(DIM)/2.0f ) );
+	
+	// m_cube_shader.enable();
+	m_shader.enable();
+		glEnable( GL_DEPTH_TEST );
+
+		glUniformMatrix4fv( P_uni, 1, GL_FALSE, value_ptr( proj ) );
+		glUniformMatrix4fv( V_uni, 1, GL_FALSE, value_ptr( view ) );
+		glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
+
+		// Draw the cube
+		glBindVertexArray(m_avatar_vao);
+		glUniform3f( col_uni, 1, 0, 0 );
+		glBindBuffer(GL_ARRAY_BUFFER, m_avatar_vao);
+		// 12 is the number of triangles needed for each cube
+		// 3*12 is for a single cube
+		// x and z are coordinates with respect to grid
+		int x = 3;
+		int z = 14;
+
+		// glDrawArrays(GL_TRIANGLES, 0, (DIM+2)*(DIM+2)*(3*12));
+		glDrawArrays(GL_TRIANGLES, (z+x*(DIM+2))*(3*12), (3*12));
+
+	// m_cube_shader.disable();
+	m_shader.disable();
+
+	// Restore defaults
+	glBindVertexArray( 0 ); 
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+
+	CHECK_GL_ERRORS;
+}
+
 void A1::drawWall()
 {
 	// Create a global transformation for the model (centre it).
@@ -487,8 +644,9 @@ void A1::drawWall()
 		glUniformMatrix4fv( M_uni, 1, GL_FALSE, value_ptr( W ) );
 
 		// Draw the cubes
-		glBindVertexArray(m_cube_vao);
-		glBindBuffer(GL_ARRAY_BUFFER, m_cube_vbo);
+		glBindVertexArray(m_wall_vao);
+		glUniform3f( col_uni, 0, 0, 0 );
+		glBindBuffer(GL_ARRAY_BUFFER, m_wall_vbo);
 		// 12 is the number of triangles needed for each cube
 		glDrawArrays(GL_TRIANGLES, 0, 3*12*m_wall_height*DIM*DIM*DIM);
 
@@ -512,6 +670,8 @@ void A1::draw()
 	drawGrid();
 
 	drawWall();
+
+	drawAvatar();
 }
 
 //----------------------------------------------------------------------------------------
@@ -608,12 +768,18 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 
 		if (key == GLFW_KEY_Q) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
-
 			eventHandled = true;
 		}
 
 		if (key == GLFW_KEY_D) {
 			m_maze->digMaze();
+			m_maze->printMaze();
+
+			eventHandled = true;
+		}
+
+		if (key == GLFW_KEY_R) {
+			m_maze->reset();
 			m_maze->printMaze();
 
 			eventHandled = true;
@@ -635,6 +801,28 @@ bool A1::keyInputEvent(int key, int action, int mods) {
 			}
 
 			// cout << "Wall height is now: " << m_wall_height << endl;
+
+			eventHandled = true;
+		}
+
+		if (key == GLFW_KEY_UP) {
+
+			cout << "up arrow pressed" << endl;
+
+			eventHandled = true;
+		}
+
+		if (key == GLFW_KEY_DOWN) {
+
+			eventHandled = true;
+		}
+
+		if (key == GLFW_KEY_LEFT) {
+
+			eventHandled = true;
+		}
+
+		if (key == GLFW_KEY_RIGHT) {
 
 			eventHandled = true;
 		}
