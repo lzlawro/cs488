@@ -191,6 +191,15 @@ void A2::appLogic()
 	// Call at the beginning of frame, before drawing lines:
 	initLineData();
 
+	glm::vec4 p1 = vec4(-1.0f, -1.0f, -1.0f, 1);
+	glm::vec4 p2 = vec4(1.0f, -1.0f, -1.0f, 1);
+	glm::vec4 p3 = vec4(-1.0f, -1.0f, 1.0f, 1);
+	glm::vec4 p4 = vec4(1.0f, -1.0f, 1.0f, 1);
+	glm::vec4 p5 = vec4(-1.0f, 1.0f, -1.0f, 1);
+	glm::vec4 p6 = vec4(1.0f, 1.0f, -1.0f, 1);
+	glm::vec4 p7 = vec4(-1.0f, 1.0f, 1.0f, 1);
+	glm::vec4 p8 = vec4(1.0f, 1.0f, 1.0f, 1);
+
 	// Draw outer square:
 	setLineColour(vec3(1.0f, 0.7f, 0.8f));
 	drawLine(vec2(-0.5f, -0.5f), vec2(0.5f, -0.5f));
