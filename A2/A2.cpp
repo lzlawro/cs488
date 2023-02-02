@@ -39,6 +39,12 @@ A2::~A2()
 
 }
 
+void A2::reset()
+{
+	m_lookat = vec3(0, 0, 0);
+	m_lookfrom = vec3(-5, 5, -5);
+}
+
 //----------------------------------------------------------------------------------------
 /*
  * Called once, at program start.
@@ -57,6 +63,28 @@ void A2::init()
 	generateVertexBuffers();
 
 	mapVboDataToVertexAttributeLocation();
+
+	cubeModel = 
+		{
+			vec4(-1.0f, -1.0f, -1.0f, 1),
+			vec4(1.0f, -1.0f, -1.0f, 1),
+			vec4(-1.0f, -1.0f, 1.0f, 1),
+			vec4(1.0f, -1.0f, 1.0f, 1),
+			vec4(-1.0f, 1.0f, -1.0f, 1),
+			vec4(1.0f, 1.0f, -1.0f, 1),
+			vec4(-1.0f, 1.0f, 1.0f, 1),
+			vec4(1.0f, 1.0f, 1.0f, 1)
+		};
+
+	m_mcs.bases = {
+		vec4(1, 0, 0, 0),
+		vec4(0, 1, 0, 0),
+		vec4(1, 0, 1, 0)
+	};
+	
+	m_mcs.origin = vec4(0, 0, 0, 1);
+
+	reset();
 }
 
 //----------------------------------------------------------------------------------------
@@ -191,29 +219,58 @@ void A2::appLogic()
 	// Call at the beginning of frame, before drawing lines:
 	initLineData();
 
-	glm::vec4 p1 = vec4(-1.0f, -1.0f, -1.0f, 1);
-	glm::vec4 p2 = vec4(1.0f, -1.0f, -1.0f, 1);
-	glm::vec4 p3 = vec4(-1.0f, -1.0f, 1.0f, 1);
-	glm::vec4 p4 = vec4(1.0f, -1.0f, 1.0f, 1);
-	glm::vec4 p5 = vec4(-1.0f, 1.0f, -1.0f, 1);
-	glm::vec4 p6 = vec4(1.0f, 1.0f, -1.0f, 1);
-	glm::vec4 p7 = vec4(-1.0f, 1.0f, 1.0f, 1);
-	glm::vec4 p8 = vec4(1.0f, 1.0f, 1.0f, 1);
+	// // Draw outer square:
+	// setLineColour(vec3(1.0f, 0.7f, 0.8f));
+	// drawLine(vec2(-0.5f, -0.5f), vec2(0.5f, -0.5f));
+	// drawLine(vec2(0.5f, -0.5f), vec2(0.5f, 0.5f));
+	// drawLine(vec2(0.5f, 0.5f), vec2(-0.5f, 0.5f));
+	// drawLine(vec2(-0.5f, 0.5f), vec2(-0.5f, -0.5f));
 
-	// Draw outer square:
-	setLineColour(vec3(1.0f, 0.7f, 0.8f));
-	drawLine(vec2(-0.5f, -0.5f), vec2(0.5f, -0.5f));
-	drawLine(vec2(0.5f, -0.5f), vec2(0.5f, 0.5f));
-	drawLine(vec2(0.5f, 0.5f), vec2(-0.5f, 0.5f));
-	drawLine(vec2(-0.5f, 0.5f), vec2(-0.5f, -0.5f));
+	// Dummy values for matrices
+	P = {
+		0,0,0,0,
+		0,0,0,0,
+		0,0,0,0,
+		0,0,0,0
+	};
+
+	glm::vec3 vz = (m_lookat - m_lookfrom) / 
+				   glm::length(m_lookat - m_lookfrom);
+
+	V = {
+		0,0,0,0,
+		0,0,0,0,
+		0,0,0,0,
+		0,0,0,0
+	};
+
+	// Modelling: Translate, rotate, scale
+	M = {
+		1,0,0,1,
+		0,1,0,0,
+		0,0,1,1,
+		0,0,0,1
+	};
+
+	setLineColour(vec3(1.0f, 1.0f, 1.0f));
+
+	for (int i = 0; i < 8; i++) {
+		p_prime[i] = 0.25f * (cubeModel[i] * M);
+	}
+
+	drawLine(vec2(p_prime[0].x, p_prime[0].z), 
+			 vec2(p_prime[1].x, p_prime[1].z));
+
+	drawLine(vec2(p_prime[1].x, p_prime[1].z), 
+			 vec2(p_prime[3].x, p_prime[3].z));
 
 
-	// Draw inner square:
-	setLineColour(vec3(0.2f, 1.0f, 1.0f));
-	drawLine(vec2(-0.25f, -0.25f), vec2(0.25f, -0.25f));
-	drawLine(vec2(0.25f, -0.25f), vec2(0.25f, 0.25f));
-	drawLine(vec2(0.25f, 0.25f), vec2(-0.25f, 0.25f));
-	drawLine(vec2(-0.25f, 0.25f), vec2(-0.25f, -0.25f));
+	// // Draw inner square:
+	// setLineColour(vec3(0.2f, 1.0f, 1.0f));
+	// drawLine(vec2(-0.25f, -0.25f), vec2(0.25f, -0.25f));
+	// drawLine(vec2(0.25f, -0.25f), vec2(0.25f, 0.25f));
+	// drawLine(vec2(0.25f, 0.25f), vec2(-0.25f, 0.25f));
+	// drawLine(vec2(-0.25f, 0.25f), vec2(-0.25f, -0.25f));
 }
 
 //----------------------------------------------------------------------------------------
@@ -237,7 +294,6 @@ void A2::guiLogic()
 
 
 		// Add more gui elements here here ...
-
 
 		// Create Button, and check if it was clicked:
 		if( ImGui::Button( "Quit Application" ) ) {
@@ -389,6 +445,12 @@ bool A2::keyInputEvent (
 	bool eventHandled(false);
 
 	// Fill in with event handling code...
+	if (action == GLFW_PRESS) {
+		if (key == GLFW_KEY_Q) {
+			glfwSetWindowShouldClose(m_window, GL_TRUE);
+			eventHandled = true;
+		}
+	}
 
 	return eventHandled;
 }

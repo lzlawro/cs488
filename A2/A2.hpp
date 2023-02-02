@@ -23,10 +23,24 @@ public:
 
 	std::vector<glm::vec2> positions;
 	std::vector<glm::vec3> colours;
+
 	GLuint index;
 	GLsizei numVertices;
 };
 
+class CoordinateSystem4 {
+public:
+
+	std::vector<glm::vec4> bases;
+	glm::vec4 origin;
+};
+
+class CoordinateSystem3 {
+public:
+
+	std::vector<glm::vec3> bases;
+	glm::vec3 origin;
+};
 
 class A2 : public CS488Window {
 public:
@@ -55,6 +69,8 @@ protected:
 
 	void initLineData();
 
+	void reset();
+
 	void setLineColour(const glm::vec3 & colour);
 
 	void drawLine (
@@ -67,6 +83,22 @@ protected:
 	GLuint m_vao;            // Vertex Array Object
 	GLuint m_vbo_positions;  // Vertex Buffer Object
 	GLuint m_vbo_colours;    // Vertex Buffer Object
+
+	CoordinateSystem4 m_mcs;
+	CoordinateSystem4 m_wcs;
+	CoordinateSystem4 m_vcs;
+
+	glm::vec3 m_lookat;
+	glm::vec3 m_lookfrom;
+	glm::vec3 m_up;
+
+	glm::vec4 p_prime[8];
+
+	glm::mat4 P;
+	glm::mat4 V;
+	glm::mat4 M;
+
+	std::vector<glm::vec4> cubeModel;
 
 	VertexData m_vertexData;
 
