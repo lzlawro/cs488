@@ -10,8 +10,10 @@ using namespace std;
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/reciprocal.hpp>
 #include <glm/gtx/io.hpp>
 #include <glm/gtx/string_cast.hpp>
+
 using namespace glm;
 
 //----------------------------------------------------------------------------------------
@@ -43,20 +45,35 @@ A2::~A2()
 void A2::reset()
 {
 	// Dummy values for matrices
-	// Projection
-	P = glm::transpose(mat4x4(
-		1,	0,	0,	0,
-		0,	1,	0,	0,
-		0,	0,	1,	0,
-		0,	0,	0,	1
-	));
 
-	// View parameters
+	// Projection / view parameters
 
-	m_lookat = vec3(0, 0, 0);
-	m_lookfrom = vec3(-5, 5, -5);
+	m_lookat = vec3(0.25, 0.5, 0.25);
+	m_lookfrom = vec3(18, 15, 10);
 
 	m_up = vec3(0, 1, 0);
+
+	m_far = 6.0f;
+	m_near = 2.0f;
+	m_theta = glm::pi<GLfloat>() / 6.0f;
+
+	m_aspect = 1.0f;
+
+	// Projection
+	P = glm::transpose(mat4x4(
+		(cos(m_theta/2)/sin(m_theta/2)) / m_aspect,	0,	0,	0,
+		0,	cos(m_theta/2)/sin(m_theta/2),	0,	0,
+		0,	0,	(m_far + m_near) / (m_far - m_near),	
+		(-2.0f * m_far * m_near) / (m_far - m_near),
+		0,	0,	1,	0
+	));
+
+	// P = glm::transpose(mat4x4(
+	// 	1,	0,	0,	0,
+	// 	0,	1,	0,	0,
+	// 	0,	0,	1,	0,
+	// 	0,	0,	0,	1
+	// ));
 
 	vz = (m_lookat - m_lookfrom) / glm::length(m_lookat - m_lookfrom);
 	vx = glm::cross(m_up, vz) / glm::length(m_up * vz);
@@ -88,15 +105,15 @@ void A2::reset()
 	// cout << glm::to_string(M) << endl;
 
 	glm::mat4 M_scale = glm::transpose(mat4x4(
-		0.25,	0,		0,		0,
-		0,		0.25,	0,		0,
-		0,		0,		0.25,	0,
+		0.1,	0,		0,		0,
+		0,		0.1,	0,		0,
+		0,		0,		0.1,	0,
 		0,		0,		0,		1
 	));
 
 	glm::mat4 M_translate = glm::transpose(mat4x4(
 		1,	0,	0,	0.25,
-		0,	1,	0,	0,
+		0,	1,	0,	0.5,
 		0,	0,	1,	0.25,
 		0,	0,	0,	1
 	));
@@ -105,14 +122,12 @@ void A2::reset()
 
 	// cout << "V = " << to_string(V) << endl;
 
-	for (int i = 0; i < 8; i++) {
-		p_prime[i] = (M * cubeModel[i]);
-	}
+	cout << to_string(P) << endl;
 
 	cout << p_prime[0] << endl;
 	cout << p_prime[1] << endl;
 	cout << p_prime[3] << endl;
-	
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -296,19 +311,34 @@ void A2::appLogic()
 	// drawLine(vec2(0.5f, 0.5f), vec2(-0.5f, 0.5f));
 	// drawLine(vec2(-0.5f, 0.5f), vec2(-0.5f, -0.5f));
 
+	for (int i = 0; i < 8; i++) {
+		// p_prime[i] = (P * V * M * cubeModel[i]);
+		p_prime[i] = (P*V*M*cubeModel[i]);
+	}
+
 	// For now, everything is moved to part of the init method
 	// TODO: after producing a cube scene that makes sense,
 	//		 move some of the code back here
 
 	setLineColour(vec3(1.0f, 1.0f, 1.0f));
 
-	drawLine(vec2(p_prime[0].x, p_prime[0].z), 
-			 vec2(p_prime[1].x, p_prime[1].z));
+	// drawLine(vec2(p_prime[0].x, p_prime[0].z), 
+	// 		 vec2(p_prime[1].x, p_prime[1].z));
 
-	drawLine(vec2(p_prime[1].x, p_prime[1].z), 
-			 vec2(p_prime[3].x, p_prime[3].z));
+	// drawLine(vec2(p_prime[1].x, p_prime[1].z), 
+	// 		 vec2(p_prime[3].x, p_prime[3].z));
 
+	for (int i = 0; i <= 4; i += 4) {
+		drawLine(vec2(p_prime[0+i].x, p_prime[0+i].y), vec2(p_prime[1+i].x, p_prime[1+i].y));
+		drawLine(vec2(p_prime[1+i].x, p_prime[1+i].y), vec2(p_prime[3+i].x, p_prime[3+i].y));
+		drawLine(vec2(p_prime[3+i].x, p_prime[3+i].y), vec2(p_prime[2+i].x, p_prime[2+i].y));
+		drawLine(vec2(p_prime[2+i].x, p_prime[2+i].y), vec2(p_prime[0+i].x, p_prime[0+i].y));
+	}
 
+	for (int i = 0; i < 4; i++) {
+		drawLine(vec2(p_prime[0+i].x, p_prime[0+i].y), vec2(p_prime[4+i].x, p_prime[4+i].y));
+	}
+	
 	// // Draw inner square:
 	// setLineColour(vec3(0.2f, 1.0f, 1.0f));
 	// drawLine(vec2(-0.25f, -0.25f), vec2(0.25f, -0.25f));

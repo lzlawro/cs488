@@ -92,6 +92,12 @@ protected:
 	glm::vec3 m_lookfrom;
 	glm::vec3 m_up;
 
+	GLfloat m_near;
+	GLfloat m_far;
+
+	GLfloat m_theta;
+	GLfloat m_aspect;
+
 	glm::vec3 vz;
 	glm::vec3 vx;
 	glm::vec3 vy;
