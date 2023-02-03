@@ -92,6 +92,10 @@ protected:
 	glm::vec3 m_lookfrom;
 	glm::vec3 m_up;
 
+	glm::vec3 vz;
+	glm::vec3 vx;
+	glm::vec3 vy;
+
 	glm::vec4 p_prime[8];
 
 	glm::mat4 P;

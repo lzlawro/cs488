@@ -11,6 +11,7 @@ using namespace std;
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/io.hpp>
+#include <glm/gtx/string_cast.hpp>
 using namespace glm;
 
 //----------------------------------------------------------------------------------------
@@ -41,8 +42,77 @@ A2::~A2()
 
 void A2::reset()
 {
+	// Dummy values for matrices
+	// Projection
+	P = glm::transpose(mat4x4(
+		1,	0,	0,	0,
+		0,	1,	0,	0,
+		0,	0,	1,	0,
+		0,	0,	0,	1
+	));
+
+	// View parameters
+
 	m_lookat = vec3(0, 0, 0);
 	m_lookfrom = vec3(-5, 5, -5);
+
+	m_up = vec3(0, 1, 0);
+
+	vz = (m_lookat - m_lookfrom) / glm::length(m_lookat - m_lookfrom);
+	vx = glm::cross(m_up, vz) / glm::length(m_up * vz);
+	vy = glm::cross(vz, vx);
+
+	// cout << glm::to_string(vz) << endl;
+	// cout << glm::to_string(vx) << endl;
+
+	glm::mat4 T = glm::transpose(mat4x4(
+		1,	0,	0,	-m_lookfrom.x,
+		0,	1,	0,	-m_lookfrom.y,
+		0,	0,	1,	-m_lookfrom.z,
+		0,	0,	0,	1
+	));
+
+	glm::mat4 R = glm::transpose(mat4x4(
+		vx[0],	vx[1],	vx[2],	0,
+		vy[0],	vy[1],	vy[2],	0,
+		vz[0],	vz[1],	vz[2],	0,
+		0,		0,		0,		1
+	));
+
+	V = R * T;
+
+	// cout << glm::to_string(V) << endl;
+
+	// Modelling: Translate, rotate, scale
+	// M = glm::translate(glm::mat4(), glm::vec3(1.0f, 0.0f, 1.0f));
+	// cout << glm::to_string(M) << endl;
+
+	glm::mat4 M_scale = glm::transpose(mat4x4(
+		0.25,	0,		0,		0,
+		0,		0.25,	0,		0,
+		0,		0,		0.25,	0,
+		0,		0,		0,		1
+	));
+
+	glm::mat4 M_translate = glm::transpose(mat4x4(
+		1,	0,	0,	0.25,
+		0,	1,	0,	0,
+		0,	0,	1,	0.25,
+		0,	0,	0,	1
+	));
+
+	M = M_translate * M_scale;
+
+	// cout << "V = " << to_string(V) << endl;
+
+	for (int i = 0; i < 8; i++) {
+		p_prime[i] = (M * cubeModel[i]);
+	}
+
+	cout << p_prime[0] << endl;
+	cout << p_prime[1] << endl;
+	cout << p_prime[3] << endl;
+	
 }
 
 //----------------------------------------------------------------------------------------
@@ -226,37 +296,11 @@ void A2::appLogic()
 	// drawLine(vec2(0.5f, 0.5f), vec2(-0.5f, 0.5f));
 	// drawLine(vec2(-0.5f, 0.5f), vec2(-0.5f, -0.5f));
 
-	// Dummy values for matrices
-	P = {
-		0,0,0,0,
-		0,0,0,0,
-		0,0,0,0,
-		0,0,0,0
-	};
-
-	glm::vec3 vz = (m_lookat - m_lookfrom) / 
-				   glm::length(m_lookat - m_lookfrom);
-
-	V = {
-		0,0,0,0,
-		0,0,0,0,
-		0,0,0,0,
-		0,0,0,0
-	};
-
-	// Modelling: Translate, rotate, scale
-	M = {
-		1,0,0,1,
-		0,1,0,0,
-		0,0,1,1,
-		0,0,0,1
-	};
+	// For now, everything is moved to part of the init method
+	// TODO: after producing a cube scene that makes sense,
+	//		 move some of the code back here
 
 	setLineColour(vec3(1.0f, 1.0f, 1.0f));
-
-	for (int i = 0; i < 8; i++) {
-		p_prime[i] = 0.25f * (cubeModel[i] * M);
-	}
 
 	drawLine(vec2(p_prime[0].x, p_prime[0].z), 
 			 vec2(p_prime[1].x, p_prime[1].z));
