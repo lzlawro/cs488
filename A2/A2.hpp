@@ -91,6 +91,10 @@ protected:
 	glm::mat4 V;
 	glm::mat4 M;
 
+	double m_prev_xpos;
+	double m_prev_ypos;
+	bool m_is_dragging[3];
+
 	glm::vec4 cubeFinal[8];
 	glm::vec4 cubeGnomonFinal[4];
 

@@ -44,10 +44,7 @@ A2::~A2()
 
 void A2::reset()
 {
-	// Dummy values for matrices
-
-	// Projection / view parameters
-
+	// Reset parameters
 	m_lookat = vec3(0.25, 0.5, 0.25);
 	m_lookfrom = vec3(9, 9, 5);
 
@@ -58,6 +55,11 @@ void A2::reset()
 	m_fov = glm::pi<GLfloat>() / 6.0f;
 
 	m_aspect = 1.0f;
+
+	m_prev_xpos = 0.0f;
+	m_is_dragging[0] = false;
+	m_is_dragging[1] = false;
+	m_is_dragging[2] = false;
 }
 
 //----------------------------------------------------------------------------------------
@@ -457,6 +459,23 @@ bool A2::mouseMoveEvent (
 ) {
 	bool eventHandled(false);
 
+	if (!ImGui::IsMouseHoveringAnyWindow()) {
+		if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
+
+		}
+		if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
+			
+		}
+		if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
+			
+		}
+
+		m_prev_xpos = xPos;
+		m_prev_ypos = yPos;
+
+		eventHandled = true;
+	}
+
 	// Fill in with event handling code...
 
 	return eventHandled;
@@ -472,6 +491,36 @@ bool A2::mouseButtonInputEvent (
 		int mods
 ) {
 	bool eventHandled(false);
+
+	if (!ImGui::IsMouseHoveringAnyWindow()) {
+		if (actions == GLFW_PRESS) {
+			if (button == GLFW_MOUSE_BUTTON_LEFT) {
+				m_is_dragging[0] = false;
+			}
+			if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+				m_is_dragging[1] = false;
+			}
+			if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+				m_is_dragging[2] = false;
+			}
+
+			eventHandled = true;
+		}
+
+		if (actions == GLFW_RELEASE) {
+			if (button == GLFW_MOUSE_BUTTON_LEFT) {
+				m_is_dragging[0] = !m_is_dragging[0];
+			}
+			if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+				m_is_dragging[1] = !m_is_dragging[1];
+			}
+			if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+				m_is_dragging[2] = !m_is_dragging[2];
+			}
+
+			eventHandled = true;
+		}
+	}
 
 	// Fill in with event handling code...
 

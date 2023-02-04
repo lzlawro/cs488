@@ -931,7 +931,7 @@ bool A1::mouseMoveEvent(double xPos, double yPos)
 		// Probably need some instance variables to track the current
 		// rotation amount, and maybe the previous X position (so 
 		// that you can rotate relative to the *change* in X.
-		if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_1)) {
+		if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
 			m_rotation += (xPos - m_prev_xpos) / 16000.0f;
 			m_persistence += (xPos - m_prev_xpos) / 32000.0f;
 
