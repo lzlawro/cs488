@@ -49,85 +49,15 @@ void A2::reset()
 	// Projection / view parameters
 
 	m_lookat = vec3(0.25, 0.5, 0.25);
-	m_lookfrom = vec3(18, 15, 10);
+	m_lookfrom = vec3(9, 9, 5);
 
 	m_up = vec3(0, 1, 0);
 
 	m_far = 6.0f;
 	m_near = 2.0f;
-	m_theta = glm::pi<GLfloat>() / 6.0f;
+	m_fov = glm::pi<GLfloat>() / 6.0f;
 
 	m_aspect = 1.0f;
-
-	// Projection
-	P = glm::transpose(mat4x4(
-		(cos(m_theta/2)/sin(m_theta/2)) / m_aspect,	0,	0,	0,
-		0,	cos(m_theta/2)/sin(m_theta/2),	0,	0,
-		0,	0,	(m_far + m_near) / (m_far - m_near),	
-		(-2.0f * m_far * m_near) / (m_far - m_near),
-		0,	0,	1,	0
-	));
-
-	// P = glm::transpose(mat4x4(
-	// 	1,	0,	0,	0,
-	// 	0,	1,	0,	0,
-	// 	0,	0,	1,	0,
-	// 	0,	0,	0,	1
-	// ));
-
-	vz = (m_lookat - m_lookfrom) / glm::length(m_lookat - m_lookfrom);
-	vx = glm::cross(m_up, vz) / glm::length(m_up * vz);
-	vy = glm::cross(vz, vx);
-
-	// cout << glm::to_string(vz) << endl;
-	// cout << glm::to_string(vx) << endl;
-
-	glm::mat4 T = glm::transpose(mat4x4(
-		1,	0,	0,	-m_lookfrom.x,
-		0,	1,	0,	-m_lookfrom.y,
-		0,	0,	1,	-m_lookfrom.z,
-		0,	0,	0,	1
-	));
-
-	glm::mat4 R = glm::transpose(mat4x4(
-		vx[0],	vx[1],	vx[2],	0,
-		vy[0],	vy[1],	vy[2],	0,
-		vz[0],	vz[1],	vz[2],	0,
-		0,		0,		0,		1
-	));
-
-	V = R * T;
-
-	// cout << glm::to_string(V) << endl;
-
-	// Modelling: Translate, rotate, scale
-	// M = glm::translate(glm::mat4(), glm::vec3(1.0f, 0.0f, 1.0f));
-	// cout << glm::to_string(M) << endl;
-
-	glm::mat4 M_scale = glm::transpose(mat4x4(
-		0.1,	0,		0,		0,
-		0,		0.1,	0,		0,
-		0,		0,		0.1,	0,
-		0,		0,		0,		1
-	));
-
-	glm::mat4 M_translate = glm::transpose(mat4x4(
-		1,	0,	0,	0.25,
-		0,	1,	0,	0.5,
-		0,	0,	1,	0.25,
-		0,	0,	0,	1
-	));
-
-	M = M_translate * M_scale;
-
-	// cout << "V = " << to_string(V) << endl;
-
-	cout << to_string(P) << endl;
-
-	cout << p_prime[0] << endl;
-	cout << p_prime[1] << endl;
-	cout << p_prime[3] << endl;
-
 }
 
 //----------------------------------------------------------------------------------------
@@ -161,13 +91,13 @@ void A2::init()
 			vec4(1.0f, 1.0f, 1.0f, 1)
 		};
 
-	m_mcs.bases = {
-		vec4(1, 0, 0, 0),
-		vec4(0, 1, 0, 0),
-		vec4(1, 0, 1, 0)
-	};
-	
-	m_mcs.origin = vec4(0, 0, 0, 1);
+	cubeGnomon = 
+		{
+			vec4(0.0f, 0.0f, 0.0f, 1),
+			vec4(0.3f, 0.0f, 0.0f, 1),
+			vec4(0.0f, 0.3f, 0.0f, 1),
+			vec4(0.0f, 0.0f, 0.3f, 1),
+		};
 
 	reset();
 }
@@ -304,40 +234,109 @@ void A2::appLogic()
 	// Call at the beginning of frame, before drawing lines:
 	initLineData();
 
+	// For now, everything is moved to part of the init method
+	// TODO: after producing a cube scene that makes sense,
+	//		 move some of the code back here
+
+	//----------------------------------------------------------------------------------------
+	// MCS to WCS
+	glm::mat4 M_scale_default = glm::transpose(mat4x4(
+		0.1,	0,		0,		0,
+		0,		0.1,	0,		0,
+		0,		0,		0.1,	0,
+		0,		0,		0,		1
+	));
+
+	glm::mat4 M_translate_default = glm::transpose(mat4x4(
+		1,	0,	0,	0.25,
+		0,	1,	0,	0.5,
+		0,	0,	1,	0.25,
+		0,	0,	0,	1
+	));
+
+	M = M_translate_default * M_scale_default;
+
+	//----------------------------------------------------------------------------------------
+	// WCS to VCS
+
+	vz = (m_lookat - m_lookfrom) / glm::length(m_lookat - m_lookfrom);
+	vx = glm::cross(m_up, vz) / glm::length(m_up * vz);
+	vy = glm::cross(vz, vx);
+
+	glm::mat4 T = glm::transpose(mat4x4(
+		1,	0,	0,	-m_lookfrom.x,
+		0,	1,	0,	-m_lookfrom.y,
+		0,	0,	1,	-m_lookfrom.z,
+		0,	0,	0,	1
+	));
+
+	glm::mat4 R = glm::transpose(mat4x4(
+		vx[0],	vx[1],	vx[2],	0,
+		vy[0],	vy[1],	vy[2],	0,
+		vz[0],	vz[1],	vz[2],	0,
+		0,		0,		0,		1
+	));
+
+	V = R * T;
+
+	//----------------------------------------------------------------------------------------
+	// Projection
+	P = glm::transpose(mat4x4(
+		(cos(m_fov/2)/sin(m_fov/2)) / m_aspect,	0,	0,	0,
+		0,	cos(m_fov/2)/sin(m_fov/2),	0,	0,
+		0,	0,	(m_far + m_near) / (m_far - m_near),	
+		(-2.0f * m_far * m_near) / (m_far - m_near),
+		0,	0,	1,	0
+	));
+
+	//----------------------------------------------------------------------------------------
+	// Apply matrices
+	
+	for (int i = 0; i < 8; i++) {
+		cubeFinal[i] = P*V*M*cubeModel[i];
+	}
+
+	for (int i = 0; i < 4; i++) {
+		cubeGnomonFinal[i] = P*V*M*cubeGnomon[i];
+	}
+
+	//----------------------------------------------------------------------------------------
+	// Draw the wireframe cube
+	setLineColour(vec3(1.0f, 1.0f, 1.0f));
+
+	for (int i = 0; i <= 4; i += 4) {
+		drawLine(vec2(cubeFinal[0+i].x, cubeFinal[0+i].y), vec2(cubeFinal[1+i].x, cubeFinal[1+i].y));
+		drawLine(vec2(cubeFinal[1+i].x, cubeFinal[1+i].y), vec2(cubeFinal[3+i].x, cubeFinal[3+i].y));
+		drawLine(vec2(cubeFinal[3+i].x, cubeFinal[3+i].y), vec2(cubeFinal[2+i].x, cubeFinal[2+i].y));
+		drawLine(vec2(cubeFinal[2+i].x, cubeFinal[2+i].y), vec2(cubeFinal[0+i].x, cubeFinal[0+i].y));
+	}
+
+	for (int i = 0; i < 4; i++) {
+		drawLine(vec2(cubeFinal[0+i].x, cubeFinal[0+i].y), vec2(cubeFinal[4+i].x, cubeFinal[4+i].y));
+	}
+	//----------------------------------------------------------------------------------------
+	// Draw the cube gnomon
+
+	setLineColour(vec3(1.0f, 0.0f, 0.0f));
+		drawLine(vec2(cubeGnomonFinal[0].x, cubeGnomonFinal[0].y), 
+				 vec2(cubeGnomonFinal[1].x, cubeGnomonFinal[1].y));
+
+	setLineColour(vec3(0.0f, 1.0f, 0.0f));
+		drawLine(vec2(cubeGnomonFinal[0].x, cubeGnomonFinal[0].y), 
+				 vec2(cubeGnomonFinal[2].x, cubeGnomonFinal[2].y));
+
+	setLineColour(vec3(0.0f, 0.0f, 1.0f));
+		drawLine(vec2(cubeGnomonFinal[0].x, cubeGnomonFinal[0].y), 
+				 vec2(cubeGnomonFinal[3].x, cubeGnomonFinal[3].y));
+
+	//----------------------------------------------------------------------------------------
+
 	// // Draw outer square:
 	// setLineColour(vec3(1.0f, 0.7f, 0.8f));
 	// drawLine(vec2(-0.5f, -0.5f), vec2(0.5f, -0.5f));
 	// drawLine(vec2(0.5f, -0.5f), vec2(0.5f, 0.5f));
 	// drawLine(vec2(0.5f, 0.5f), vec2(-0.5f, 0.5f));
 	// drawLine(vec2(-0.5f, 0.5f), vec2(-0.5f, -0.5f));
-
-	for (int i = 0; i < 8; i++) {
-		// p_prime[i] = (P * V * M * cubeModel[i]);
-		p_prime[i] = (P*V*M*cubeModel[i]);
-	}
-
-	// For now, everything is moved to part of the init method
-	// TODO: after producing a cube scene that makes sense,
-	//		 move some of the code back here
-
-	setLineColour(vec3(1.0f, 1.0f, 1.0f));
-
-	// drawLine(vec2(p_prime[0].x, p_prime[0].z), 
-	// 		 vec2(p_prime[1].x, p_prime[1].z));
-
-	// drawLine(vec2(p_prime[1].x, p_prime[1].z), 
-	// 		 vec2(p_prime[3].x, p_prime[3].z));
-
-	for (int i = 0; i <= 4; i += 4) {
-		drawLine(vec2(p_prime[0+i].x, p_prime[0+i].y), vec2(p_prime[1+i].x, p_prime[1+i].y));
-		drawLine(vec2(p_prime[1+i].x, p_prime[1+i].y), vec2(p_prime[3+i].x, p_prime[3+i].y));
-		drawLine(vec2(p_prime[3+i].x, p_prime[3+i].y), vec2(p_prime[2+i].x, p_prime[2+i].y));
-		drawLine(vec2(p_prime[2+i].x, p_prime[2+i].y), vec2(p_prime[0+i].x, p_prime[0+i].y));
-	}
-
-	for (int i = 0; i < 4; i++) {
-		drawLine(vec2(p_prime[0+i].x, p_prime[0+i].y), vec2(p_prime[4+i].x, p_prime[4+i].y));
-	}
 	
 	// // Draw inner square:
 	// setLineColour(vec3(0.2f, 1.0f, 1.0f));
@@ -345,6 +344,8 @@ void A2::appLogic()
 	// drawLine(vec2(0.25f, -0.25f), vec2(0.25f, 0.25f));
 	// drawLine(vec2(0.25f, 0.25f), vec2(-0.25f, 0.25f));
 	// drawLine(vec2(-0.25f, 0.25f), vec2(-0.25f, -0.25f));
+
+	//----------------------------------------------------------------------------------------
 }
 
 //----------------------------------------------------------------------------------------

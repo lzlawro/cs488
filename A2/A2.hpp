@@ -28,20 +28,6 @@ public:
 	GLsizei numVertices;
 };
 
-class CoordinateSystem4 {
-public:
-
-	std::vector<glm::vec4> bases;
-	glm::vec4 origin;
-};
-
-class CoordinateSystem3 {
-public:
-
-	std::vector<glm::vec3> bases;
-	glm::vec3 origin;
-};
-
 class A2 : public CS488Window {
 public:
 	A2();
@@ -84,9 +70,8 @@ protected:
 	GLuint m_vbo_positions;  // Vertex Buffer Object
 	GLuint m_vbo_colours;    // Vertex Buffer Object
 
-	CoordinateSystem4 m_mcs;
-	CoordinateSystem4 m_wcs;
-	CoordinateSystem4 m_vcs;
+	std::vector<glm::vec4> cubeModel;
+	std::vector<glm::vec4> cubeGnomon;
 
 	glm::vec3 m_lookat;
 	glm::vec3 m_lookfrom;
@@ -95,20 +80,19 @@ protected:
 	GLfloat m_near;
 	GLfloat m_far;
 
-	GLfloat m_theta;
+	GLfloat m_fov;
 	GLfloat m_aspect;
 
 	glm::vec3 vz;
 	glm::vec3 vx;
 	glm::vec3 vy;
 
-	glm::vec4 p_prime[8];
-
 	glm::mat4 P;
 	glm::mat4 V;
 	glm::mat4 M;
 
-	std::vector<glm::vec4> cubeModel;
+	glm::vec4 cubeFinal[8];
+	glm::vec4 cubeGnomonFinal[4];
 
 	VertexData m_vertexData;
 
