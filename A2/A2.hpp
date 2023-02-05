@@ -28,6 +28,16 @@ public:
 	GLsizei numVertices;
 };
 
+enum Mode {
+	ROTATE_VIEW, 
+	TRANSLATE_VIEW,
+	PERSPECTIVE, 
+	ROTATE_MODEL,
+	TRANSLATE_MODEL,
+	SCALE_MODEL,
+	VIEWPORT
+};
+
 class A2 : public CS488Window {
 public:
 	A2();
@@ -73,6 +83,8 @@ protected:
 	std::vector<glm::vec4> cubeModel;
 	std::vector<glm::vec4> cubeGnomon;
 
+	std::vector<glm::vec4> worldGnomon;
+
 	glm::vec3 m_lookat;
 	glm::vec3 m_lookfrom;
 	glm::vec3 m_up;
@@ -95,11 +107,15 @@ protected:
 	double m_prev_ypos;
 	bool m_is_dragging[3];
 
+	float m_model_rotation[3];
+
 	glm::vec4 cubeFinal[8];
 	glm::vec4 cubeGnomonFinal[4];
+	glm::vec4 worldGnomonFinal[4];
 
 	VertexData m_vertexData;
 
 	glm::vec3 m_currentLineColour;
 
+	Mode current_mode;
 };
