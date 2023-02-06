@@ -1,4 +1,4 @@
-// Termm--Fall 2020
+// Termm--Fall 2023
 
 #include "A2.hpp"
 #include "cs488-framework/GlErrorCheck.hpp"
@@ -11,6 +11,7 @@ using namespace std;
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/reciprocal.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/io.hpp>
 #include <glm/gtx/string_cast.hpp>
 
@@ -50,21 +51,28 @@ void A2::reset()
 
 	m_up = vec3(0, 1, 0);
 
-	m_far = 6.0f;
-	m_near = 3.0f;
+	m_far = 10.0f;
+	m_near = 1.0f;
 	m_fov = glm::pi<GLfloat>() / 6.0f;
 
 	m_aspect = 1.0f;
 
 	m_prev_xpos = 0.0f;
 	
-	memset(m_is_dragging, false, 3*sizeof(bool));
+	m_left_dragging = false;
+	m_middle_dragging = false;
+	m_right_dragging = false;
 
 	current_mode = ROTATE_MODEL;
 
 	memset(m_model_rotation, 0.0f, 3*sizeof(float));
 
 	P = V = M = glm::mat4x4(1.0f);
+}
+
+void A2::clearMotion(int button)
+{
+	m_model_rotation[button] = 0.0f;
 }
 
 //----------------------------------------------------------------------------------------
@@ -263,13 +271,14 @@ void A2::appLogic()
 
 	// glm::mat4 M_rotate_z(1.0f);
 
+	glm::mat4 M_rotate = glm::mat4x4(1.0f);
+
 	glm::mat4 M_rotate_z = glm::transpose(mat4x4(
 		cos(theta_z),	-sin(theta_z),	0,	0,
 		sin(theta_z),	cos(theta_z),	0,	0,
 		0,	0,	1,	0,
 		0,	0,	0,	1
 	));
-
 
 	glm::mat4 M_rotate_x = glm::transpose(mat4x4(
 		1,	0,	0,	0,
@@ -286,7 +295,10 @@ void A2::appLogic()
 	));
 
 	// M = (M_translate_default) * (M_scale_default) * (M_rotate_z * M_rotate_y * M_rotate_x);
-	M = M_rotate_z * M_rotate_y * M_rotate_x;
+	M_rotate = M_rotate_x * M_rotate_y * M_rotate_z;
+
+	// M = M_rotate
+	M = M * M_rotate;
 
 	//----------------------------------------------------------------------------------------
 	// WCS to VCS
@@ -414,12 +426,16 @@ void A2::guiLogic()
 
 		// Add more gui elements here here ...
 
+		ImGui::RadioButton("Rotate Model	(r)", (int*)&current_mode, ROTATE_MODEL);
+		ImGui::RadioButton("Translate Model	(t)", (int*)&current_mode, TRANSLATE_MODEL);
+
 		// Create Button, and check if it was clicked:
 		if( ImGui::Button( "Quit Application" ) ) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
 		}
 
 		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
+		ImGui::Text("Near: %.1f, Far: %.1f", m_near, m_far);
 
 	ImGui::End();
 }
@@ -502,33 +518,34 @@ bool A2::mouseMoveEvent (
 	bool eventHandled(false);
 
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
-		if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
-			switch(current_mode) {
-				case ROTATE_MODEL:
-					m_model_rotation[GLFW_MOUSE_BUTTON_LEFT] += (xPos - m_prev_xpos) / 200.0f;
-					break;
+			if (m_left_dragging) {
+				switch(current_mode) {
+					case ROTATE_MODEL:
+						m_model_rotation[GLFW_MOUSE_BUTTON_LEFT] = (xPos - m_prev_xpos) / 200.0f;
+						break;
+				}
 			}
-		}
-		if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
-			switch(current_mode) {
-				case ROTATE_MODEL:
-					m_model_rotation[GLFW_MOUSE_BUTTON_MIDDLE] += (xPos - m_prev_xpos) / 200.0f;
-					break;
+			if (m_middle_dragging) {
+				switch(current_mode) {
+					case ROTATE_MODEL:
+						m_model_rotation[GLFW_MOUSE_BUTTON_MIDDLE] = (xPos - m_prev_xpos) / 200.0f;
+						break;
+				}
 			}
-		}
-		if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
-			switch(current_mode) {
-				case ROTATE_MODEL:
-					m_model_rotation[GLFW_MOUSE_BUTTON_RIGHT] += (xPos - m_prev_xpos) / 200.0f;
-					break;
+			if (m_right_dragging) {
+				switch(current_mode) {
+					case ROTATE_MODEL:
+						m_model_rotation[GLFW_MOUSE_BUTTON_RIGHT] = (xPos - m_prev_xpos) / 200.0f;
+						break;
+				}
 			}
-		}
-
-		m_prev_xpos = xPos;
-		m_prev_ypos = yPos;
 
 		eventHandled = true;
 	}
+
+	m_prev_xpos = xPos;
+	m_prev_ypos = yPos;
+	
 
 	// Fill in with event handling code...
 
@@ -549,13 +566,13 @@ bool A2::mouseButtonInputEvent (
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
 		if (actions == GLFW_PRESS) {
 			if (button == GLFW_MOUSE_BUTTON_LEFT) {
-				m_is_dragging[GLFW_MOUSE_BUTTON_LEFT] = false;
+				m_left_dragging = true;
 			}
 			if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
-				m_is_dragging[GLFW_MOUSE_BUTTON_MIDDLE] = false;
+				m_middle_dragging = true;
 			}
 			if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-				m_is_dragging[GLFW_MOUSE_BUTTON_RIGHT] = false;
+				m_right_dragging = true;
 			}
 
 			eventHandled = true;
@@ -563,13 +580,16 @@ bool A2::mouseButtonInputEvent (
 
 		if (actions == GLFW_RELEASE) {
 			if (button == GLFW_MOUSE_BUTTON_LEFT) {
-				m_is_dragging[GLFW_MOUSE_BUTTON_LEFT] = !m_is_dragging[GLFW_MOUSE_BUTTON_LEFT];
+				m_left_dragging = false;
+				clearMotion(GLFW_MOUSE_BUTTON_LEFT);
 			}	
 			if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
-				m_is_dragging[GLFW_MOUSE_BUTTON_MIDDLE] = !m_is_dragging[GLFW_MOUSE_BUTTON_MIDDLE];
+				m_middle_dragging = false;
+				clearMotion(GLFW_MOUSE_BUTTON_MIDDLE);
 			}
 			if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-				m_is_dragging[GLFW_MOUSE_BUTTON_RIGHT] = !m_is_dragging[GLFW_MOUSE_BUTTON_RIGHT];
+				m_right_dragging = false;
+				clearMotion(GLFW_MOUSE_BUTTON_RIGHT);
 			}
 			eventHandled = true;
 		}
@@ -625,6 +645,18 @@ bool A2::keyInputEvent (
 	if (action == GLFW_PRESS) {
 		if (key == GLFW_KEY_Q) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_A) {
+			reset();
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_R) {
+			current_mode = ROTATE_MODEL;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_T) {
+			current_mode = TRANSLATE_MODEL;
 			eventHandled = true;
 		}
 	}

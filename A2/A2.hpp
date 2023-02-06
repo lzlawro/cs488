@@ -1,4 +1,4 @@
-// Termm--Fall 2020
+// Termm--Fall 2023
 
 #pragma once
 
@@ -62,6 +62,7 @@ protected:
 	void generateVertexBuffers();
 	void mapVboDataToVertexAttributeLocation();
 	void uploadVertexDataToVbos();
+	void clearMotion(int button);
 
 	void initLineData();
 
@@ -105,7 +106,10 @@ protected:
 
 	double m_prev_xpos;
 	double m_prev_ypos;
-	bool m_is_dragging[3];
+
+	bool m_left_dragging;
+	bool m_middle_dragging;
+	bool m_right_dragging;
 
 	float m_model_rotation[3];
 
