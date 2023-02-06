@@ -66,8 +66,14 @@ void A2::reset()
 	current_mode = ROTATE_MODEL;
 
 	memset(m_model_rotation, 0.0f, 3*sizeof(float));
+	memset(m_model_translation, 0.0f, 3*sizeof(float));
 
 	P = V = M = glm::mat4x4(1.0f);
+
+	vz = (m_lookat - m_lookfrom) / glm::length(m_lookat - m_lookfrom);
+	vx = glm::cross(m_up, vz) / glm::length(m_up * vz);
+	vy = glm::cross(vz, vx);
+
 }
 
 void A2::clearMotion(int button)
@@ -263,49 +269,13 @@ void A2::appLogic()
 
 	//----------------------------------------------------------------------------------------
 	// MCS to WCS
+	
+	//----------------------------------------------------------------------------------------
+	// Translate
 
-	float theta_x = m_model_rotation[GLFW_MOUSE_BUTTON_LEFT];
-	 // float theta_y = m_model_rotation[GLFW_MOUSE_BUTTON_MIDDLE];
-	float theta_y = m_model_rotation[GLFW_MOUSE_BUTTON_MIDDLE];
-	float theta_z = m_model_rotation[GLFW_MOUSE_BUTTON_RIGHT];
-
-	// glm::mat4 M_rotate_z(1.0f);
-
-	glm::mat4 M_rotate = glm::mat4x4(1.0f);
-
-	glm::mat4 M_rotate_z = glm::transpose(mat4x4(
-		cos(theta_z),	-sin(theta_z),	0,	0,
-		sin(theta_z),	cos(theta_z),	0,	0,
-		0,	0,	1,	0,
-		0,	0,	0,	1
-	));
-
-	glm::mat4 M_rotate_x = glm::transpose(mat4x4(
-		1,	0,	0,	0,
-		0,	cos(theta_x),	-sin(theta_x),	0,
-		0,	sin(theta_x),	cos(theta_x),	0,
-		0,	0,	0,	1
-	));
-
-	glm::mat4 M_rotate_y = glm::transpose(mat4x4(
-		cos(theta_y),	0,	sin(theta_y),	0,
-		0,	1,	0,	0,
-		-sin(theta_y),	0,	cos(theta_y),	0,
-		0,	0,	0,	1
-	));
-
-	// M = (M_translate_default) * (M_scale_default) * (M_rotate_z * M_rotate_y * M_rotate_x);
-	M_rotate = M_rotate_x * M_rotate_y * M_rotate_z;
-
-	// M = M_rotate
-	M = M * M_rotate;
 
 	//----------------------------------------------------------------------------------------
-	// WCS to VCS
-
-	vz = (m_lookat - m_lookfrom) / glm::length(m_lookat - m_lookfrom);
-	vx = glm::cross(m_up, vz) / glm::length(m_up * vz);
-	vy = glm::cross(vz, vx);
+	// Init / Reset view
 
 	glm::mat4 T = glm::transpose(mat4x4(
 		1,	0,	0,	-m_lookfrom.x,
@@ -426,8 +396,9 @@ void A2::guiLogic()
 
 		// Add more gui elements here here ...
 
-		ImGui::RadioButton("Rotate Model	(r)", (int*)&current_mode, ROTATE_MODEL);
-		ImGui::RadioButton("Translate Model	(t)", (int*)&current_mode, TRANSLATE_MODEL);
+		ImGui::RadioButton("Rotate Model       (R)", (int*)&current_mode, ROTATE_MODEL);
+		ImGui::RadioButton("Translate Model    (T)", (int*)&current_mode, TRANSLATE_MODEL);
+		ImGui::RadioButton("Scale Model        (S)", (int*)&current_mode, SCALE_MODEL);
 
 		// Create Button, and check if it was clicked:
 		if( ImGui::Button( "Quit Application" ) ) {
@@ -518,29 +489,44 @@ bool A2::mouseMoveEvent (
 	bool eventHandled(false);
 
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
-			if (m_left_dragging) {
-				switch(current_mode) {
-					case ROTATE_MODEL:
-						m_model_rotation[GLFW_MOUSE_BUTTON_LEFT] = (xPos - m_prev_xpos) / 200.0f;
-						break;
-				}
-			}
-			if (m_middle_dragging) {
-				switch(current_mode) {
-					case ROTATE_MODEL:
-						m_model_rotation[GLFW_MOUSE_BUTTON_MIDDLE] = (xPos - m_prev_xpos) / 200.0f;
-						break;
-				}
-			}
-			if (m_right_dragging) {
-				switch(current_mode) {
-					case ROTATE_MODEL:
-						m_model_rotation[GLFW_MOUSE_BUTTON_RIGHT] = (xPos - m_prev_xpos) / 200.0f;
-						break;
-				}
-			}
+		switch(current_mode) {
+			case ROTATE_VIEW:
+				break;
+			case TRANSLATE_VIEW:
+				break;
+			case PERSPECTIVE:
+				break;
+			case ROTATE_MODEL:
+				updateModelRotation(xPos, yPos);
+				break;
+			case SCALE_MODEL:
+				break;
+			case VIEWPORT:
+				break;
+		}
 
 		eventHandled = true;
+			// if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
+			// 	switch(current_mode) {
+			// 		case ROTATE_MODEL:
+			// 			m_model_rotation[GLFW_MOUSE_BUTTON_LEFT] = (xPos - m_prev_xpos) / 400.0f;
+			// 			break;
+			// 	}
+			// }
+			// if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
+			// 	switch(current_mode) {
+			// 		case ROTATE_MODEL:
+			// 			m_model_rotation[GLFW_MOUSE_BUTTON_MIDDLE] = (xPos - m_prev_xpos) / 400.0f;
+			// 			break;
+			// 	}
+			// }
+			// if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
+			// 	switch(current_mode) {
+			// 		case ROTATE_MODEL:
+			// 			m_model_rotation[GLFW_MOUSE_BUTTON_RIGHT] = (xPos - m_prev_xpos) / 400.0f;
+			// 			break;
+			// 	}
+			// }
 	}
 
 	m_prev_xpos = xPos;
@@ -550,6 +536,60 @@ bool A2::mouseMoveEvent (
 	// Fill in with event handling code...
 
 	return eventHandled;
+}
+
+void A2::updateModelRotation(double xPos, double yPos) {
+	//----------------------------------------------------------------------------------------
+	// Rotate
+
+	float theta = (xPos - m_prev_xpos) / 200.0f;
+
+	glm::mat4 M_rotate_z = glm::mat4x4(1.0f);
+	glm::mat4 M_rotate_x = glm::mat4x4(1.0f);
+	glm::mat4 M_rotate_y = glm::mat4x4(1.0f);
+
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
+		M_rotate_x = glm::transpose(mat4x4(
+			1,	0,	0,	0,
+			0,	cos(theta),	-sin(theta),	0,
+			0,	sin(theta),	cos(theta),	0,
+			0,	0,	0,	1
+		));
+	}
+
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
+		M_rotate_y = glm::transpose(mat4x4(
+			cos(theta),	0,	sin(theta),	0,
+			0,	1,	0,	0,
+			-sin(theta),	0,	cos(theta),	0,
+			0,	0,	0,	1
+		));
+	}
+
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
+		M_rotate_z = glm::transpose(mat4x4(
+			cos(theta),	-sin(theta),	0,	0,
+			sin(theta),	cos(theta),	0,	0,
+			0,	0,	1,	0,
+			0,	0,	0,	1
+		));
+	}
+
+	glm::mat4 M_rotate = M_rotate_z * M_rotate_x * M_rotate_y;
+
+	M = M * M_rotate;
+}
+
+void A2::updateModelScale(double xPos, double yPos) {
+	glm::mat4 M_scale_z = glm::mat4x4(1.0f);
+	glm::mat4 M_scale_x = glm::mat4x4(1.0f);
+	glm::mat4 M_scale_y = glm::mat4x4(1.0f);
+
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
+		
+	}
+
+	glm::mat4 M_scale = M_scale_z * M_scale_x * M_scale_y;
 }
 
 //----------------------------------------------------------------------------------------
@@ -657,6 +697,10 @@ bool A2::keyInputEvent (
 		}
 		if (key == GLFW_KEY_T) {
 			current_mode = TRANSLATE_MODEL;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_S) {
+			current_mode = SCALE_MODEL;
 			eventHandled = true;
 		}
 	}

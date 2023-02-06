@@ -64,6 +64,9 @@ protected:
 	void uploadVertexDataToVbos();
 	void clearMotion(int button);
 
+	void updateModelRotation(double xPos, double yPos);
+	void updateModelScale(double xPos, double yPos);
+
 	void initLineData();
 
 	void reset();
@@ -112,6 +115,7 @@ protected:
 	bool m_right_dragging;
 
 	float m_model_rotation[3];
+	float m_model_translation[3];
 
 	glm::vec4 cubeFinal[8];
 	glm::vec4 cubeGnomonFinal[4];
