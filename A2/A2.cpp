@@ -45,13 +45,13 @@ A2::~A2()
 void A2::reset()
 {
 	// Reset parameters
-	m_lookat = vec3(0.25, 0.5, 0.25);
-	m_lookfrom = vec3(9, 9, 5);
+	m_lookat = vec3(0, 0, 0);
+	m_lookfrom = vec3(10, 8, 6);
 
 	m_up = vec3(0, 1, 0);
 
 	m_far = 6.0f;
-	m_near = 2.0f;
+	m_near = 3.0f;
 	m_fov = glm::pi<GLfloat>() / 6.0f;
 
 	m_aspect = 1.0f;
@@ -63,6 +63,8 @@ void A2::reset()
 	current_mode = ROTATE_MODEL;
 
 	memset(m_model_rotation, 0.0f, 3*sizeof(float));
+
+	P = V = M = glm::mat4x4(1.0f);
 }
 
 //----------------------------------------------------------------------------------------
@@ -253,19 +255,6 @@ void A2::appLogic()
 
 	//----------------------------------------------------------------------------------------
 	// MCS to WCS
-	glm::mat4 M_scale_default = glm::transpose(mat4x4(
-		0.1,	0,		0,		0,
-		0,		0.1,	0,		0,
-		0,		0,		0.1,	0,
-		0,		0,		0,		1
-	));
-
-	glm::mat4 M_translate_default = glm::transpose(mat4x4(
-		1,	0,	0,	0.25,
-		0,	1,	0,	0.5,
-		0,	0,	1,	0.25,
-		0,	0,	0,	1
-	));
 
 	float theta_x = m_model_rotation[GLFW_MOUSE_BUTTON_LEFT];
 	 // float theta_y = m_model_rotation[GLFW_MOUSE_BUTTON_MIDDLE];
@@ -296,7 +285,8 @@ void A2::appLogic()
 		0,	0,	0,	1
 	));
 
-	M = (M_translate_default) * (M_scale_default) * (M_rotate_x * M_rotate_y * M_rotate_z);
+	// M = (M_translate_default) * (M_scale_default) * (M_rotate_z * M_rotate_y * M_rotate_x);
+	M = M_rotate_z * M_rotate_y * M_rotate_x;
 
 	//----------------------------------------------------------------------------------------
 	// WCS to VCS
@@ -336,10 +326,22 @@ void A2::appLogic()
 	
 	for (int i = 0; i < 8; i++) {
 		cubeFinal[i] = P*V*M*cubeModel[i];
+
+		// Normalize
+		cubeFinal[i] = vec4(cubeFinal[i][0]/cubeFinal[i][3], 
+							cubeFinal[i][1]/cubeFinal[i][3],
+							cubeFinal[i][2]/cubeFinal[i][3],
+							1.0f);
 	}
 
 	for (int i = 0; i < 4; i++) {
 		cubeGnomonFinal[i] = P*V*M*cubeGnomon[i];
+
+		// Normalize
+		cubeGnomonFinal[i] = vec4(cubeGnomonFinal[i][0]/cubeGnomonFinal[i][3], 
+							cubeGnomonFinal[i][1]/cubeGnomonFinal[i][3],
+							cubeGnomonFinal[i][2]/cubeGnomonFinal[i][3],
+							1.0f);
 	}
 
 	//----------------------------------------------------------------------------------------
