@@ -53,7 +53,7 @@ void A2::reset()
 
 	m_far = 10.0f;
 	m_near = 1.0f;
-	m_fov = glm::pi<GLfloat>() / 6.0f;
+	m_fov = glm::radians(30.0f);
 
 	m_aspect = 1.0f;
 
@@ -300,7 +300,7 @@ void A2::appLogic()
 	
 	for (int i = 0; i < 8; i++) {
 		// cubeFinal[i] = P*V*M_translate*M_rotate*M_scale*cubeModel[i];
-		cubeFinal[i] = P*V_view*M_translate_rotate*M_scale*cubeModel[i];
+		cubeFinal[i] = P*V_translate_rotate*V_view*M_translate_rotate*M_scale*cubeModel[i];
 
 		// Normalize
 		cubeFinal[i] = vec4(cubeFinal[i][0]/cubeFinal[i][3], 
@@ -310,7 +310,7 @@ void A2::appLogic()
 	}
 
 	for (int i = 0; i < 4; i++) {
-		cubeGnomonFinal[i] = P*V_view*M_translate_rotate*cubeGnomon[i];
+		cubeGnomonFinal[i] = P*V_translate_rotate*V_view*M_translate_rotate*cubeGnomon[i];
 
 		// Normalize
 		cubeGnomonFinal[i] = vec4(cubeGnomonFinal[i][0]/cubeGnomonFinal[i][3], 
@@ -320,7 +320,7 @@ void A2::appLogic()
 	}
 
 	for (int i = 0; i < 4; i++) {
-		worldGnomonFinal[i] = P*V_view*worldGnomon[i];
+		worldGnomonFinal[i] = P*V_translate_rotate*V_view*worldGnomon[i];
 
 		// Normalize
 		worldGnomonFinal[i] = vec4(worldGnomonFinal[i][0]/worldGnomonFinal[i][3], 
@@ -413,6 +413,10 @@ void A2::guiLogic()
 
 		// Add more gui elements here here ...
 
+		ImGui::RadioButton("Rotate View        (O)", (int*)&current_mode, ROTATE_VIEW);
+		ImGui::RadioButton("Translate View     (E)", (int*)&current_mode, TRANSLATE_VIEW);
+		ImGui::RadioButton("Perspective        (P)", (int*)&current_mode, PERSPECTIVE);
+
 		ImGui::RadioButton("Rotate Model       (R)", (int*)&current_mode, ROTATE_MODEL);
 		ImGui::RadioButton("Translate Model    (T)", (int*)&current_mode, TRANSLATE_MODEL);
 		ImGui::RadioButton("Scale Model        (S)", (int*)&current_mode, SCALE_MODEL);
@@ -424,6 +428,7 @@ void A2::guiLogic()
 
 		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 		ImGui::Text("Near: %.1f, Far: %.1f", m_near, m_far);
+		ImGui::Text("FOV: %.1f", glm::degrees(m_fov));
 
 	ImGui::End();
 }
@@ -508,13 +513,13 @@ bool A2::mouseMoveEvent (
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
 		switch(current_mode) {
 			case ROTATE_VIEW:
-				// updateViewRotation(xPos, yPos);
+				updateViewRotation(xPos, yPos);
 				break;
 			case TRANSLATE_VIEW:
-				// updateViewTranslation(xPos, yPos);
+				updateViewTranslation(xPos, yPos);
 				break;
 			case PERSPECTIVE:
-				// updatePerspective(xPos, yPos);
+				updatePerspective(xPos, yPos);
 				break;
 			case ROTATE_MODEL:
 				updateModelRotation(xPos, yPos);
@@ -641,15 +646,82 @@ void A2::updateModelTranslation(double xPos, double yPos) {
 }
 
 void A2::updateViewRotation(double xPos, double yPos) {
-	
+	float theta = (xPos - m_prev_xpos) / 300.0f;
+
+	glm::mat4 Rz = glm::mat4x4(1.0f);
+	glm::mat4 Rx = glm::mat4x4(1.0f);
+	glm::mat4 Ry = glm::mat4x4(1.0f);
+
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
+		Rx = glm::transpose(mat4x4(
+			1,	0,	0,	0,
+			0,	cos(theta),	-sin(theta),	0,
+			0,	sin(theta),	cos(theta),	0,
+			0,	0,	0,	1
+		));
+
+		V_translate_rotate = glm::inverse(Rx) * V_translate_rotate;
+	}
+
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
+		Ry = glm::transpose(mat4x4(
+			cos(theta),	0,	sin(theta),	0,
+			0,	1,	0,	0,
+			-sin(theta),	0,	cos(theta),	0,
+			0,	0,	0,	1
+		));
+
+		V_translate_rotate = glm::inverse(Ry) * V_translate_rotate;
+	}
+
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
+		Rz = glm::transpose(mat4x4(
+			cos(theta),	-sin(theta),	0,	0,
+			sin(theta),	cos(theta),	0,	0,
+			0,	0,	1,	0,
+			0,	0,	0,	1
+		));
+
+		V_translate_rotate = glm::inverse(Rz) * V_translate_rotate;
+	}
 }
 
 void A2::updateViewTranslation(double xPos, double yPos) {
+	glm::mat4 T = glm::mat4x4(1.0f);
 
+	float delta_xyz = (xPos - m_prev_xpos) / 300.0f;
+
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
+		T[3][0] = delta_xyz;
+	}
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
+		T[3][1] = delta_xyz;
+	}
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
+		T[3][2] = delta_xyz;
+	}
+
+	V_translate_rotate = glm::inverse(T) * V_translate_rotate;
 }
 
 void A2::updatePerspective(double xPos, double yPos) {
+	float offset = (xPos - m_prev_xpos) / 300.0f;
 
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
+		if (m_fov + offset >= glm::radians(5.0f) && m_fov + offset <= glm::radians(160.0f)) {
+			m_fov += offset;
+		}
+	}
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
+		if (m_near + offset > 0.0f && m_near + offset < m_far) {
+			m_near += offset;
+		}
+	}
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
+		if (m_far + offset > m_near) {
+			m_far += offset;
+		}
+	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -729,6 +801,18 @@ bool A2::keyInputEvent (
 		}
 		if (key == GLFW_KEY_A) {
 			reset();
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_O) {
+			current_mode = ROTATE_VIEW;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_E) {
+			current_mode = TRANSLATE_VIEW;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_P) {
+			current_mode = PERSPECTIVE;
 			eventHandled = true;
 		}
 		if (key == GLFW_KEY_R) {
