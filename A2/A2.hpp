@@ -66,6 +66,10 @@ protected:
 
 	void updateModelRotation(double xPos, double yPos);
 	void updateModelScale(double xPos, double yPos);
+	void updateModelTranslation(double xPos, double yPos);
+	void updateViewRotation(double xPos, double yPos);
+	void updateViewTranslation(double xPos, double yPos);
+	void updatePerspective(double xPos, double yPos);
 
 	void initLineData();
 
@@ -104,15 +108,15 @@ protected:
 	glm::vec3 vy;
 
 	glm::mat4 P;
-	glm::mat4 V;
-	glm::mat4 M;
+
+	glm::mat4 V_view;
+	glm::mat4 V_translate_rotate;
+
+	glm::mat4 M_scale;
+	glm::mat4 M_translate_rotate;
 
 	double m_prev_xpos;
 	double m_prev_ypos;
-
-	bool m_left_dragging;
-	bool m_middle_dragging;
-	bool m_right_dragging;
 
 	float m_model_rotation[3];
 	float m_model_translation[3];

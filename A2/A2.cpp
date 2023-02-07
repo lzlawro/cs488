@@ -58,17 +58,17 @@ void A2::reset()
 	m_aspect = 1.0f;
 
 	m_prev_xpos = 0.0f;
-	
-	m_left_dragging = false;
-	m_middle_dragging = false;
-	m_right_dragging = false;
 
 	current_mode = ROTATE_MODEL;
 
 	memset(m_model_rotation, 0.0f, 3*sizeof(float));
 	memset(m_model_translation, 0.0f, 3*sizeof(float));
 
-	P = V = M = glm::mat4x4(1.0f);
+	M_translate_rotate = M_scale = glm::mat4x4(1.0f);
+
+	P = V_view = glm::mat4x4(1.0f);
+
+	V_translate_rotate = glm::mat4x4(1.0f);
 
 	vz = (m_lookat - m_lookfrom) / glm::length(m_lookat - m_lookfrom);
 	vx = glm::cross(m_up, vz) / glm::length(m_up * vz);
@@ -112,21 +112,13 @@ void A2::init()
 			vec4(1.0f, 1.0f, 1.0f, 1)
 		};
 
-	cubeGnomon = 
+	cubeGnomon = worldGnomon =
 		{
 			vec4(0.0f, 0.0f, 0.0f, 1),
 			vec4(0.3f, 0.0f, 0.0f, 1),
 			vec4(0.0f, 0.3f, 0.0f, 1),
 			vec4(0.0f, 0.0f, 0.3f, 1),
 		};
-
-	worldGnomon = 
-	{
-		vec4(0.0f, 0.0f, 0.0f, 1),
-		vec4(0.3f, 0.0f, 0.0f, 1),
-		vec4(0.0f, 0.3f, 0.0f, 1),
-		vec4(0.0f, 0.0f, 0.3f, 1),
-	};
 
 	reset();
 }
@@ -291,7 +283,7 @@ void A2::appLogic()
 		0,		0,		0,		1
 	));
 
-	V = R * T;
+	V_view = R * T;
 
 	//----------------------------------------------------------------------------------------
 	// Projection
@@ -307,7 +299,8 @@ void A2::appLogic()
 	// Apply matrices
 	
 	for (int i = 0; i < 8; i++) {
-		cubeFinal[i] = P*V*M*cubeModel[i];
+		// cubeFinal[i] = P*V*M_translate*M_rotate*M_scale*cubeModel[i];
+		cubeFinal[i] = P*V_view*M_translate_rotate*M_scale*cubeModel[i];
 
 		// Normalize
 		cubeFinal[i] = vec4(cubeFinal[i][0]/cubeFinal[i][3], 
@@ -317,12 +310,22 @@ void A2::appLogic()
 	}
 
 	for (int i = 0; i < 4; i++) {
-		cubeGnomonFinal[i] = P*V*M*cubeGnomon[i];
+		cubeGnomonFinal[i] = P*V_view*M_translate_rotate*cubeGnomon[i];
 
 		// Normalize
 		cubeGnomonFinal[i] = vec4(cubeGnomonFinal[i][0]/cubeGnomonFinal[i][3], 
 							cubeGnomonFinal[i][1]/cubeGnomonFinal[i][3],
 							cubeGnomonFinal[i][2]/cubeGnomonFinal[i][3],
+							1.0f);
+	}
+
+	for (int i = 0; i < 4; i++) {
+		worldGnomonFinal[i] = P*V_view*worldGnomon[i];
+
+		// Normalize
+		worldGnomonFinal[i] = vec4(worldGnomonFinal[i][0]/worldGnomonFinal[i][3], 
+							worldGnomonFinal[i][1]/worldGnomonFinal[i][3],
+							worldGnomonFinal[i][2]/worldGnomonFinal[i][3],
 							1.0f);
 	}
 
@@ -354,6 +357,20 @@ void A2::appLogic()
 	setLineColour(vec3(0.0f, 0.0f, 1.0f));
 		drawLine(vec2(cubeGnomonFinal[0].x, cubeGnomonFinal[0].y), 
 				 vec2(cubeGnomonFinal[3].x, cubeGnomonFinal[3].y));
+
+	//----------------------------------------------------------------------------------------
+	// Draw world gnomon
+	setLineColour(vec3(0.0f, 1.0f, 1.0f));
+		drawLine(vec2(worldGnomonFinal[0].x, worldGnomonFinal[0].y), 
+				 vec2(worldGnomonFinal[1].x, worldGnomonFinal[1].y));
+
+	setLineColour(vec3(1.0f, 0.0f, 1.0f));
+		drawLine(vec2(worldGnomonFinal[0].x, worldGnomonFinal[0].y), 
+				 vec2(worldGnomonFinal[2].x, worldGnomonFinal[2].y));
+
+	setLineColour(vec3(1.0f, 1.0f, 0.0f));
+		drawLine(vec2(worldGnomonFinal[0].x, worldGnomonFinal[0].y), 
+				 vec2(worldGnomonFinal[3].x, worldGnomonFinal[3].y));
 
 	//----------------------------------------------------------------------------------------
 
@@ -491,42 +508,49 @@ bool A2::mouseMoveEvent (
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
 		switch(current_mode) {
 			case ROTATE_VIEW:
+				// updateViewRotation(xPos, yPos);
 				break;
 			case TRANSLATE_VIEW:
+				// updateViewTranslation(xPos, yPos);
 				break;
 			case PERSPECTIVE:
+				// updatePerspective(xPos, yPos);
 				break;
 			case ROTATE_MODEL:
 				updateModelRotation(xPos, yPos);
 				break;
 			case SCALE_MODEL:
+				updateModelScale(xPos, yPos);
+				break;
+			case TRANSLATE_MODEL:
+				updateModelTranslation(xPos, yPos);
 				break;
 			case VIEWPORT:
 				break;
 		}
 
 		eventHandled = true;
-			// if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
-			// 	switch(current_mode) {
-			// 		case ROTATE_MODEL:
-			// 			m_model_rotation[GLFW_MOUSE_BUTTON_LEFT] = (xPos - m_prev_xpos) / 400.0f;
-			// 			break;
-			// 	}
-			// }
-			// if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
-			// 	switch(current_mode) {
-			// 		case ROTATE_MODEL:
-			// 			m_model_rotation[GLFW_MOUSE_BUTTON_MIDDLE] = (xPos - m_prev_xpos) / 400.0f;
-			// 			break;
-			// 	}
-			// }
-			// if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
-			// 	switch(current_mode) {
-			// 		case ROTATE_MODEL:
-			// 			m_model_rotation[GLFW_MOUSE_BUTTON_RIGHT] = (xPos - m_prev_xpos) / 400.0f;
-			// 			break;
-			// 	}
-			// }
+		// if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
+		// 	switch(current_mode) {
+		// 		case ROTATE_MODEL:
+		// 			m_model_rotation[GLFW_MOUSE_BUTTON_LEFT] = (xPos - m_prev_xpos) / 400.0f;
+		// 			break;
+		// 	}
+		// }
+		// if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
+		// 	switch(current_mode) {
+		// 		case ROTATE_MODEL:
+		// 			m_model_rotation[GLFW_MOUSE_BUTTON_MIDDLE] = (xPos - m_prev_xpos) / 400.0f;
+		// 			break;
+		// 	}
+		// }
+		// if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
+		// 	switch(current_mode) {
+		// 		case ROTATE_MODEL:
+		// 			m_model_rotation[GLFW_MOUSE_BUTTON_RIGHT] = (xPos - m_prev_xpos) / 400.0f;
+		// 			break;
+		// 	}
+		// }
 	}
 
 	m_prev_xpos = xPos;
@@ -542,14 +566,14 @@ void A2::updateModelRotation(double xPos, double yPos) {
 	//----------------------------------------------------------------------------------------
 	// Rotate
 
-	float theta = (xPos - m_prev_xpos) / 200.0f;
+	float theta = (xPos - m_prev_xpos) / 300.0f;
 
-	glm::mat4 M_rotate_z = glm::mat4x4(1.0f);
-	glm::mat4 M_rotate_x = glm::mat4x4(1.0f);
-	glm::mat4 M_rotate_y = glm::mat4x4(1.0f);
+	glm::mat4 Rz = glm::mat4x4(1.0f);
+	glm::mat4 Rx = glm::mat4x4(1.0f);
+	glm::mat4 Ry = glm::mat4x4(1.0f);
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
-		M_rotate_x = glm::transpose(mat4x4(
+		Rx = glm::transpose(mat4x4(
 			1,	0,	0,	0,
 			0,	cos(theta),	-sin(theta),	0,
 			0,	sin(theta),	cos(theta),	0,
@@ -558,7 +582,7 @@ void A2::updateModelRotation(double xPos, double yPos) {
 	}
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
-		M_rotate_y = glm::transpose(mat4x4(
+		Ry = glm::transpose(mat4x4(
 			cos(theta),	0,	sin(theta),	0,
 			0,	1,	0,	0,
 			-sin(theta),	0,	cos(theta),	0,
@@ -567,7 +591,7 @@ void A2::updateModelRotation(double xPos, double yPos) {
 	}
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
-		M_rotate_z = glm::transpose(mat4x4(
+		Rz = glm::transpose(mat4x4(
 			cos(theta),	-sin(theta),	0,	0,
 			sin(theta),	cos(theta),	0,	0,
 			0,	0,	1,	0,
@@ -575,21 +599,57 @@ void A2::updateModelRotation(double xPos, double yPos) {
 		));
 	}
 
-	glm::mat4 M_rotate = M_rotate_z * M_rotate_x * M_rotate_y;
-
-	M = M * M_rotate;
+	M_translate_rotate = M_translate_rotate * Rz * Ry * Rx;
 }
 
 void A2::updateModelScale(double xPos, double yPos) {
-	glm::mat4 M_scale_z = glm::mat4x4(1.0f);
-	glm::mat4 M_scale_x = glm::mat4x4(1.0f);
-	glm::mat4 M_scale_y = glm::mat4x4(1.0f);
+	glm::mat4 S = glm::mat4x4(1.0f);
+
+	float s_xyz = (xPos - m_prev_xpos) / 300.0f;
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
-		
+		if (S[0][0] + s_xyz >= 0.0f) S[0][0] += s_xyz;
 	}
 
-	glm::mat4 M_scale = M_scale_z * M_scale_x * M_scale_y;
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
+		if (S[1][1] + s_xyz >= 0.0f) S[1][1] += s_xyz;
+	}
+
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
+		if (S[2][2] + s_xyz >= 0.0f) S[2][2] += s_xyz;
+	}
+
+	M_scale = M_scale * S;
+}
+
+void A2::updateModelTranslation(double xPos, double yPos) {
+	glm::mat4 T = glm::mat4x4(1.0f);
+
+	float delta_xyz = (xPos - m_prev_xpos) / 300.0f;
+
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
+		T[3][0] = delta_xyz;
+	}
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
+		T[3][1] = delta_xyz;
+	}
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
+		T[3][2] = delta_xyz;
+	}
+
+	M_translate_rotate = M_translate_rotate * T;
+}
+
+void A2::updateViewRotation(double xPos, double yPos) {
+	
+}
+
+void A2::updateViewTranslation(double xPos, double yPos) {
+
+}
+
+void A2::updatePerspective(double xPos, double yPos) {
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -605,32 +665,12 @@ bool A2::mouseButtonInputEvent (
 
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
 		if (actions == GLFW_PRESS) {
-			if (button == GLFW_MOUSE_BUTTON_LEFT) {
-				m_left_dragging = true;
-			}
-			if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
-				m_middle_dragging = true;
-			}
-			if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-				m_right_dragging = true;
-			}
 
 			eventHandled = true;
 		}
 
 		if (actions == GLFW_RELEASE) {
-			if (button == GLFW_MOUSE_BUTTON_LEFT) {
-				m_left_dragging = false;
-				clearMotion(GLFW_MOUSE_BUTTON_LEFT);
-			}	
-			if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
-				m_middle_dragging = false;
-				clearMotion(GLFW_MOUSE_BUTTON_MIDDLE);
-			}
-			if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-				m_right_dragging = false;
-				clearMotion(GLFW_MOUSE_BUTTON_RIGHT);
-			}
+
 			eventHandled = true;
 		}
 	}
