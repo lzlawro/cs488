@@ -70,6 +70,7 @@ protected:
 	void updateViewRotation(double xPos, double yPos);
 	void updateViewTranslation(double xPos, double yPos);
 	void updatePerspective(double xPos, double yPos);
+	void updateViewport(double xPos, double yPos);
 
 	void initLineData();
 
@@ -97,6 +98,18 @@ protected:
 	glm::vec3 m_lookfrom;
 	glm::vec3 m_up;
 
+	glm::vec2 m_window_lb;
+	glm::vec2 m_window_rt;
+
+	glm::vec2 m_viewport_lb;
+	glm::vec2 m_viewport_rt;
+
+	// glm::vec2 m_window_lt;
+	// glm::vec2 m_window_rb;
+
+	// glm::vec2 m_viewport_lt;
+	// glm::vec2 m_viewport_rb;
+
 	GLfloat m_near;
 	GLfloat m_far;
 
@@ -121,9 +134,13 @@ protected:
 	float m_model_rotation[3];
 	float m_model_translation[3];
 
-	glm::vec4 cubeFinal[8];
-	glm::vec4 cubeGnomonFinal[4];
-	glm::vec4 worldGnomonFinal[4];
+	glm::vec4 cubeProj[8];
+	glm::vec4 cubeGnomonProj[4];
+	glm::vec4 worldGnomonProj[4];
+
+	glm::vec2 cubeFinal[8];
+	glm::vec2 cubeGnomonFinal[4];
+	glm::vec2 worldGnomonFinal[4];
 
 	VertexData m_vertexData;
 

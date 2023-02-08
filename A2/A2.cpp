@@ -74,6 +74,12 @@ void A2::reset()
 	vx = glm::cross(m_up, vz) / glm::length(m_up * vz);
 	vy = glm::cross(vz, vx);
 
+	m_window_lb = vec2(-1.0f, -1.0f);
+	m_window_rt = vec2(1.0f, 1.0f);
+
+	m_viewport_lb = 0.90f * vec2(-1.0f, -1.0f);
+	m_viewport_rt = 0.90f * vec2(1.0f, 1.0f);
+
 }
 
 void A2::clearMotion(int button)
@@ -299,78 +305,118 @@ void A2::appLogic()
 	// Apply matrices
 	
 	for (int i = 0; i < 8; i++) {
-		// cubeFinal[i] = P*V*M_translate*M_rotate*M_scale*cubeModel[i];
-		cubeFinal[i] = P*V_translate_rotate*V_view*M_translate_rotate*M_scale*cubeModel[i];
+		// cubeProj[i] = P*V*M_translate*M_rotate*M_scale*cubeModel[i];
+		cubeProj[i] = P*V_translate_rotate*V_view*M_translate_rotate*M_scale*cubeModel[i];
 
 		// Normalize
-		cubeFinal[i] = vec4(cubeFinal[i][0]/cubeFinal[i][3], 
-							cubeFinal[i][1]/cubeFinal[i][3],
-							cubeFinal[i][2]/cubeFinal[i][3],
+		cubeProj[i] = vec4(cubeProj[i][0]/cubeProj[i][3], 
+							cubeProj[i][1]/cubeProj[i][3],
+							cubeProj[i][2]/cubeProj[i][3],
 							1.0f);
 	}
 
 	for (int i = 0; i < 4; i++) {
-		cubeGnomonFinal[i] = P*V_translate_rotate*V_view*M_translate_rotate*cubeGnomon[i];
+		cubeGnomonProj[i] = P*V_translate_rotate*V_view*M_translate_rotate*cubeGnomon[i];
 
 		// Normalize
-		cubeGnomonFinal[i] = vec4(cubeGnomonFinal[i][0]/cubeGnomonFinal[i][3], 
-							cubeGnomonFinal[i][1]/cubeGnomonFinal[i][3],
-							cubeGnomonFinal[i][2]/cubeGnomonFinal[i][3],
+		cubeGnomonProj[i] = vec4(cubeGnomonProj[i][0]/cubeGnomonProj[i][3], 
+							cubeGnomonProj[i][1]/cubeGnomonProj[i][3],
+							cubeGnomonProj[i][2]/cubeGnomonProj[i][3],
 							1.0f);
+
 	}
 
 	for (int i = 0; i < 4; i++) {
-		worldGnomonFinal[i] = P*V_translate_rotate*V_view*worldGnomon[i];
+		worldGnomonProj[i] = P*V_translate_rotate*V_view*worldGnomon[i];
 
 		// Normalize
-		worldGnomonFinal[i] = vec4(worldGnomonFinal[i][0]/worldGnomonFinal[i][3], 
-							worldGnomonFinal[i][1]/worldGnomonFinal[i][3],
-							worldGnomonFinal[i][2]/worldGnomonFinal[i][3],
+		worldGnomonProj[i] = vec4(worldGnomonProj[i][0]/worldGnomonProj[i][3], 
+							worldGnomonProj[i][1]/worldGnomonProj[i][3],
+							worldGnomonProj[i][2]/worldGnomonProj[i][3],
 							1.0f);
+
 	}
+
+	//----------------------------------------------------------------------------------------
+	// Proj to window
+	for (int i = 0; i < 8; i++) {
+		cubeFinal[i].x = cubeProj[i].x;
+		cubeFinal[i].y = cubeProj[i].y;
+	}
+
+	for (int i = 0; i < 4; i++) {
+		cubeGnomonFinal[i].x = cubeGnomonProj[i].x;
+		cubeGnomonFinal[i].y = cubeGnomonProj[i].y;
+		worldGnomonFinal[i].x = worldGnomonProj[i].x;
+		worldGnomonFinal[i].y = worldGnomonProj[i].y;
+	}
+
+	//----------------------------------------------------------------------------------------
+	// Window to viewport
+
+	float Lw = m_window_rt.x - m_window_lb.x, Hw = m_window_rt.y - m_window_lb.y,
+		  Lv = m_viewport_rt.x - m_viewport_lb.x, Hv = m_viewport_rt.y - m_viewport_lb.y;  
+
+	for (int i = 0; i < 8; i++) {
+		cubeFinal[i].x = (Lv / Lw) * (cubeFinal[i].x - m_window_lb.x) + m_viewport_lb.x;
+		cubeFinal[i].y = (Hv / Hw) * (cubeFinal[i].y - m_window_lb.y) + m_viewport_lb.y;
+	}
+
+	for (int i = 0; i < 4; i++) {
+		cubeGnomonFinal[i].x = (Lv / Lw) * (cubeGnomonFinal[i].x - m_window_lb.x) + m_viewport_lb.x;
+		cubeGnomonFinal[i].y = (Hv / Hw) * (cubeGnomonFinal[i].y - m_window_lb.y) + m_viewport_lb.y;
+
+		worldGnomonFinal[i].x = (Lv / Lw) * (worldGnomonFinal[i].x - m_window_lb.x) + m_viewport_lb.x;
+		worldGnomonFinal[i].y = (Hv / Hw) * (worldGnomonFinal[i].y - m_window_lb.y) + m_viewport_lb.y;
+	}
+
+	//----------------------------------------------------------------------------------------
+	// Draw viewport
+	setLineColour(vec3(0.0f, 0.0f, 0.0f));
+	// drawLine(m_viewport_lb, m_viewport_rt);
+
+	drawLine(m_viewport_lb, vec2(m_viewport_lb.x, m_viewport_rt.y));
+	drawLine(m_viewport_lb, vec2(m_viewport_rt.x, m_viewport_lb.y));
+	drawLine(m_viewport_rt, vec2(m_viewport_lb.x, m_viewport_rt.y));
+	drawLine(m_viewport_rt, vec2(m_viewport_rt.x, m_viewport_lb.y));
 
 	//----------------------------------------------------------------------------------------
 	// Draw the wireframe cube
 	setLineColour(vec3(1.0f, 1.0f, 1.0f));
 
 	for (int i = 0; i <= 4; i += 4) {
-		drawLine(vec2(cubeFinal[0+i].x, cubeFinal[0+i].y), vec2(cubeFinal[1+i].x, cubeFinal[1+i].y));
-		drawLine(vec2(cubeFinal[1+i].x, cubeFinal[1+i].y), vec2(cubeFinal[3+i].x, cubeFinal[3+i].y));
-		drawLine(vec2(cubeFinal[3+i].x, cubeFinal[3+i].y), vec2(cubeFinal[2+i].x, cubeFinal[2+i].y));
-		drawLine(vec2(cubeFinal[2+i].x, cubeFinal[2+i].y), vec2(cubeFinal[0+i].x, cubeFinal[0+i].y));
+		drawLine(cubeFinal[0+i], cubeFinal[1+i]);
+		drawLine(cubeFinal[1+i], cubeFinal[3+i]);
+		drawLine(cubeFinal[3+i], cubeFinal[2+i]);
+		drawLine(cubeFinal[2+i], cubeFinal[0+i]);
 	}
 
 	for (int i = 0; i < 4; i++) {
-		drawLine(vec2(cubeFinal[0+i].x, cubeFinal[0+i].y), vec2(cubeFinal[4+i].x, cubeFinal[4+i].y));
+		drawLine(cubeFinal[0+i], cubeFinal[4+i]);
 	}
+
 	//----------------------------------------------------------------------------------------
 	// Draw the cube gnomon
 
 	setLineColour(vec3(1.0f, 0.0f, 0.0f));
-		drawLine(vec2(cubeGnomonFinal[0].x, cubeGnomonFinal[0].y), 
-				 vec2(cubeGnomonFinal[1].x, cubeGnomonFinal[1].y));
+		drawLine(cubeGnomonFinal[0], cubeGnomonFinal[1]);
 
 	setLineColour(vec3(0.0f, 1.0f, 0.0f));
-		drawLine(vec2(cubeGnomonFinal[0].x, cubeGnomonFinal[0].y), 
-				 vec2(cubeGnomonFinal[2].x, cubeGnomonFinal[2].y));
+		drawLine(cubeGnomonFinal[0], cubeGnomonFinal[2]);
 
 	setLineColour(vec3(0.0f, 0.0f, 1.0f));
-		drawLine(vec2(cubeGnomonFinal[0].x, cubeGnomonFinal[0].y), 
-				 vec2(cubeGnomonFinal[3].x, cubeGnomonFinal[3].y));
+		drawLine(cubeGnomonFinal[0], cubeGnomonFinal[3]);
 
 	//----------------------------------------------------------------------------------------
 	// Draw world gnomon
 	setLineColour(vec3(0.0f, 1.0f, 1.0f));
-		drawLine(vec2(worldGnomonFinal[0].x, worldGnomonFinal[0].y), 
-				 vec2(worldGnomonFinal[1].x, worldGnomonFinal[1].y));
+		drawLine(worldGnomonFinal[0], worldGnomonFinal[1]);
 
 	setLineColour(vec3(1.0f, 0.0f, 1.0f));
-		drawLine(vec2(worldGnomonFinal[0].x, worldGnomonFinal[0].y), 
-				 vec2(worldGnomonFinal[2].x, worldGnomonFinal[2].y));
+		drawLine(worldGnomonFinal[0], worldGnomonFinal[2]);
 
 	setLineColour(vec3(1.0f, 1.0f, 0.0f));
-		drawLine(vec2(worldGnomonFinal[0].x, worldGnomonFinal[0].y), 
-				 vec2(worldGnomonFinal[3].x, worldGnomonFinal[3].y));
+		drawLine(worldGnomonFinal[0], worldGnomonFinal[3]);
 
 	//----------------------------------------------------------------------------------------
 
@@ -380,6 +426,7 @@ void A2::appLogic()
 	// drawLine(vec2(0.5f, -0.5f), vec2(0.5f, 0.5f));
 	// drawLine(vec2(0.5f, 0.5f), vec2(-0.5f, 0.5f));
 	// drawLine(vec2(-0.5f, 0.5f), vec2(-0.5f, -0.5f));
+	// drawLine(vec2(-0.5f, -0.5f), vec2(0.5f, 0.5f));
 	
 	// // Draw inner square:
 	// setLineColour(vec3(0.2f, 1.0f, 1.0f));
@@ -388,7 +435,7 @@ void A2::appLogic()
 	// drawLine(vec2(0.25f, 0.25f), vec2(-0.25f, 0.25f));
 	// drawLine(vec2(-0.25f, 0.25f), vec2(-0.25f, -0.25f));
 
-	//----------------------------------------------------------------------------------------
+	// //----------------------------------------------------------------------------------------
 }
 
 //----------------------------------------------------------------------------------------
@@ -420,6 +467,8 @@ void A2::guiLogic()
 		ImGui::RadioButton("Rotate Model       (R)", (int*)&current_mode, ROTATE_MODEL);
 		ImGui::RadioButton("Translate Model    (T)", (int*)&current_mode, TRANSLATE_MODEL);
 		ImGui::RadioButton("Scale Model        (S)", (int*)&current_mode, SCALE_MODEL);
+
+		ImGui::RadioButton("Viewport           (V)", (int*)&current_mode, VIEWPORT);
 
 		// Create Button, and check if it was clicked:
 		if( ImGui::Button( "Quit Application" ) ) {
@@ -531,6 +580,7 @@ bool A2::mouseMoveEvent (
 				updateModelTranslation(xPos, yPos);
 				break;
 			case VIEWPORT:
+				updateViewport(xPos, yPos);
 				break;
 		}
 
@@ -724,6 +774,10 @@ void A2::updatePerspective(double xPos, double yPos) {
 	}
 }
 
+void A2::updateViewport(double xPos, double yPos) {
+	// TODO: implement this
+}
+
 //----------------------------------------------------------------------------------------
 /*
  * Event handler.  Handles mouse button events.
@@ -737,6 +791,29 @@ bool A2::mouseButtonInputEvent (
 
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
 		if (actions == GLFW_PRESS) {
+			if (current_mode == VIEWPORT && button == GLFW_MOUSE_BUTTON_LEFT) {
+				// Convert the click's absolute pixel location to NDCS coordinate
+				glm::vec2 clickedPosition = vec2(
+					((m_window_rt.x - m_window_lb.x) / (m_windowWidth )) * 
+							ImGui::GetMousePos().x + m_window_lb.x, 
+					-(((m_window_rt.y - m_window_lb.y) / (m_windowHeight )) * 
+							ImGui::GetMousePos().y + m_window_lb.y)
+				);
+
+				glm::vec2 midPoint = 0.5f * (m_viewport_rt + m_viewport_lb);
+
+				if (clickedPosition.x < midPoint.x && clickedPosition.y < midPoint.y) {
+					m_viewport_lb = clickedPosition;
+				} else if (clickedPosition.x >= midPoint.x && clickedPosition.y >= midPoint.y) {
+					m_viewport_rt = clickedPosition;
+				} else if (clickedPosition.x >= midPoint.x && clickedPosition.y < midPoint.y) {
+					m_viewport_rt.x = clickedPosition.x;
+					m_viewport_lb.y = clickedPosition.y;
+				} else {
+					m_viewport_lb.x = clickedPosition.x;
+					m_viewport_rt.y = clickedPosition.y;
+				}
+			}
 
 			eventHandled = true;
 		}
@@ -825,6 +902,10 @@ bool A2::keyInputEvent (
 		}
 		if (key == GLFW_KEY_S) {
 			current_mode = SCALE_MODEL;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_V) {
+			current_mode = VIEWPORT;
 			eventHandled = true;
 		}
 	}
