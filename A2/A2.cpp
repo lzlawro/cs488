@@ -698,7 +698,7 @@ void A2::updateModelTranslation(double xPos, double yPos) {
 }
 
 void A2::updateViewRotation(double xPos, double yPos) {
-	float theta = (xPos - m_prev_xpos) / 300.0f;
+	float theta = (xPos - m_prev_xpos) / 200.0f;
 
 	glm::mat4 Rz = glm::mat4x4(1.0f);
 	glm::mat4 Rx = glm::mat4x4(1.0f);
@@ -712,7 +712,7 @@ void A2::updateViewRotation(double xPos, double yPos) {
 			0,	0,	0,	1
 		));
 
-		V_translate_rotate = glm::inverse(Rx) * V_translate_rotate;
+		V_translate_rotate = Rx * V_translate_rotate;
 	}
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
@@ -723,7 +723,7 @@ void A2::updateViewRotation(double xPos, double yPos) {
 			0,	0,	0,	1
 		));
 
-		V_translate_rotate = glm::inverse(Ry) * V_translate_rotate;
+		V_translate_rotate = Ry * V_translate_rotate;
 	}
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
@@ -734,14 +734,14 @@ void A2::updateViewRotation(double xPos, double yPos) {
 			0,	0,	0,	1
 		));
 
-		V_translate_rotate = glm::inverse(Rz) * V_translate_rotate;
+		V_translate_rotate = Rz * V_translate_rotate;
 	}
 }
 
 void A2::updateViewTranslation(double xPos, double yPos) {
 	glm::mat4 T = glm::mat4x4(1.0f);
 
-	float delta_xyz = (xPos - m_prev_xpos) / 300.0f;
+	float delta_xyz = (xPos - m_prev_xpos) / 200.0f;
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
 		T[3][0] = delta_xyz;
@@ -753,7 +753,7 @@ void A2::updateViewTranslation(double xPos, double yPos) {
 		T[3][2] = delta_xyz;
 	}
 
-	V_translate_rotate = glm::inverse(T) * V_translate_rotate;
+	V_translate_rotate = T * V_translate_rotate;
 }
 
 void A2::updatePerspective(double xPos, double yPos) {
