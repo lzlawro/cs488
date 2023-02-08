@@ -580,7 +580,9 @@ bool A2::mouseMoveEvent (
 				updateModelTranslation(xPos, yPos);
 				break;
 			case VIEWPORT:
-				updateViewport(xPos, yPos);
+				if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
+					updateViewport(xPos, yPos);
+				}
 				break;
 		}
 
@@ -776,6 +778,28 @@ void A2::updatePerspective(double xPos, double yPos) {
 
 void A2::updateViewport(double xPos, double yPos) {
 	// TODO: implement this
+
+	// Convert the click's absolute pixel location to NDCS coordinate
+	glm::vec2 clickedPosition = vec2(
+		((m_window_rt.x - m_window_lb.x) / (m_windowWidth )) * 
+				xPos + m_window_lb.x, 
+		-(((m_window_rt.y - m_window_lb.y) / (m_windowHeight )) * 
+				yPos + m_window_lb.y)
+	);
+
+	glm::vec2 midPoint = 0.5f * (m_viewport_rt + m_viewport_lb);
+
+	if (clickedPosition.x < midPoint.x && clickedPosition.y < midPoint.y) {
+		m_viewport_lb = clickedPosition;
+	} else if (clickedPosition.x >= midPoint.x && clickedPosition.y >= midPoint.y) {
+		m_viewport_rt = clickedPosition;
+	} else if (clickedPosition.x >= midPoint.x && clickedPosition.y < midPoint.y) {
+		m_viewport_rt.x = clickedPosition.x;
+		m_viewport_lb.y = clickedPosition.y;
+	} else {
+		m_viewport_lb.x = clickedPosition.x;
+		m_viewport_rt.y = clickedPosition.y;
+	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -792,27 +816,10 @@ bool A2::mouseButtonInputEvent (
 	if (!ImGui::IsMouseHoveringAnyWindow()) {
 		if (actions == GLFW_PRESS) {
 			if (current_mode == VIEWPORT && button == GLFW_MOUSE_BUTTON_LEFT) {
-				// Convert the click's absolute pixel location to NDCS coordinate
-				glm::vec2 clickedPosition = vec2(
-					((m_window_rt.x - m_window_lb.x) / (m_windowWidth )) * 
-							ImGui::GetMousePos().x + m_window_lb.x, 
-					-(((m_window_rt.y - m_window_lb.y) / (m_windowHeight )) * 
-							ImGui::GetMousePos().y + m_window_lb.y)
-				);
+				double xPos  = ImGui::GetMousePos().x;
+				double yPos  = ImGui::GetMousePos().y;
 
-				glm::vec2 midPoint = 0.5f * (m_viewport_rt + m_viewport_lb);
-
-				if (clickedPosition.x < midPoint.x && clickedPosition.y < midPoint.y) {
-					m_viewport_lb = clickedPosition;
-				} else if (clickedPosition.x >= midPoint.x && clickedPosition.y >= midPoint.y) {
-					m_viewport_rt = clickedPosition;
-				} else if (clickedPosition.x >= midPoint.x && clickedPosition.y < midPoint.y) {
-					m_viewport_rt.x = clickedPosition.x;
-					m_viewport_lb.y = clickedPosition.y;
-				} else {
-					m_viewport_lb.x = clickedPosition.x;
-					m_viewport_rt.y = clickedPosition.y;
-				}
+				updateViewport(xPos, yPos);
 			}
 
 			eventHandled = true;
