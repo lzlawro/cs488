@@ -266,13 +266,6 @@ void A2::appLogic()
 	//		 move some of the code back here
 
 	//----------------------------------------------------------------------------------------
-	// MCS to WCS
-	
-	//----------------------------------------------------------------------------------------
-	// Translate
-
-
-	//----------------------------------------------------------------------------------------
 	// Init / Reset view
 
 	glm::mat4 T = glm::transpose(mat4x4(
@@ -682,7 +675,7 @@ void A2::updateModelScale(double xPos, double yPos) {
 void A2::updateModelTranslation(double xPos, double yPos) {
 	glm::mat4 T = glm::mat4x4(1.0f);
 
-	float delta_xyz = (xPos - m_prev_xpos) / 300.0f;
+	float delta_xyz = (xPos - m_prev_xpos) / 200.0f;
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
 		T[3][0] = delta_xyz;
@@ -698,7 +691,7 @@ void A2::updateModelTranslation(double xPos, double yPos) {
 }
 
 void A2::updateViewRotation(double xPos, double yPos) {
-	float theta = (xPos - m_prev_xpos) / 200.0f;
+	float theta = (xPos - m_prev_xpos) / 300.0f;
 
 	glm::mat4 Rz = glm::mat4x4(1.0f);
 	glm::mat4 Rx = glm::mat4x4(1.0f);
