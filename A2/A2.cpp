@@ -373,8 +373,8 @@ bool A2::clipLine(pair<vec4, vec4> &line) {
 
 	for (int i = 0; i < 6; i++) {
 		if (c2[i] == 1) {
-			float coefficient = calculateIntersection(p2, p1, i);
-			p2_new = (1-coefficient) * (*p2) + coefficient * (*p1);
+			float coefficient = calculateIntersection(p1, p2, i);
+			p2_new = (1-coefficient) * (*p1) + coefficient * (*p2);
 		}
 	}
 
