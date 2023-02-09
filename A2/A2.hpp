@@ -71,6 +71,20 @@ protected:
 	void updateViewTranslation(double xPos, double yPos);
 	void updatePerspective(double xPos, double yPos);
 	void updateViewport(double xPos, double yPos);
+	void normalize(glm::vec4 &v);
+	void printMessages();
+	std::pair<glm::vec2, glm::vec2> vec4PairToVec2Pair(std::pair<glm::vec4, glm::vec4> v);
+	std::pair<glm::vec2, glm::vec2> windowToViewport(std::pair<glm::vec2, glm::vec2> vec2_pair);
+
+	void clipping(std::array<bool, 12> &cubeRejected, 
+				  std::array<bool, 3> &cubeGnomonRejected, 
+				  std::array<bool, 3> &worldGnomonRejected);
+	bool clipLine(std::pair<glm::vec4, glm::vec4> &line);
+	void setEndpointCode(glm::vec4 *p1, glm::vec4 *p2, std::array<bool, 6> &c1, std::array<bool, 6> &c2);
+	bool isTrivialAccept(std::array<bool, 6> &c1, std::array<bool, 6> &c2);
+	bool isTrivialReject(std::array<bool, 6> &c1, std::array<bool, 6> &c2);
+
+	void resetBoolArrays();
 
 	void initLineData();
 
@@ -131,16 +145,17 @@ protected:
 	double m_prev_xpos;
 	double m_prev_ypos;
 
-	float m_model_rotation[3];
-	float m_model_translation[3];
-
 	glm::vec4 cubeProj[8];
 	glm::vec4 cubeGnomonProj[4];
 	glm::vec4 worldGnomonProj[4];
 
-	glm::vec2 cubeFinal[8];
-	glm::vec2 cubeGnomonFinal[4];
-	glm::vec2 worldGnomonFinal[4];
+	std::array<std::pair<glm::vec4, glm::vec4>, 12> cubeClipped;
+	std::array<std::pair<glm::vec4, glm::vec4>, 3> cubeGnomonClipped;
+	std::array<std::pair<glm::vec4, glm::vec4>, 3> worldGnomonClipped;
+
+	std::array<std::pair<glm::vec2, glm::vec2>, 12> cubeFinal;
+	std::array<std::pair<glm::vec2, glm::vec2>, 3> cubeGnomonFinal;
+	std::array<std::pair<glm::vec2, glm::vec2>, 3> worldGnomonFinal;
 
 	VertexData m_vertexData;
 

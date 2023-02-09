@@ -47,13 +47,13 @@ void A2::reset()
 {
 	// Reset parameters
 	m_lookat = vec3(0, 0, 0);
-	m_lookfrom = vec3(10, 8, 6);
+	m_lookfrom = vec3(6, 7, 8);
 
 	m_up = vec3(0, 1, 0);
 
-	m_far = 10.0f;
+	m_far = 20.0f;
 	m_near = 1.0f;
-	m_fov = glm::radians(30.0f);
+	m_fov = radians(30.0f);
 
 	m_aspect = 1.0f;
 
@@ -61,18 +61,15 @@ void A2::reset()
 
 	current_mode = ROTATE_MODEL;
 
-	memset(m_model_rotation, 0.0f, 3*sizeof(float));
-	memset(m_model_translation, 0.0f, 3*sizeof(float));
+	M_translate_rotate = M_scale = mat4x4(1.0f);
 
-	M_translate_rotate = M_scale = glm::mat4x4(1.0f);
+	P = V_view = mat4x4(1.0f);
 
-	P = V_view = glm::mat4x4(1.0f);
+	V_translate_rotate = mat4x4(1.0f);
 
-	V_translate_rotate = glm::mat4x4(1.0f);
-
-	vz = (m_lookat - m_lookfrom) / glm::length(m_lookat - m_lookfrom);
-	vx = glm::cross(m_up, vz) / glm::length(m_up * vz);
-	vy = glm::cross(vz, vx);
+	vz = (m_lookat - m_lookfrom) / length(m_lookat - m_lookfrom);
+	vx = cross(m_up, vz) / length(m_up * vz);
+	vy = cross(vz, vx);
 
 	m_window_lb = vec2(-1.0f, -1.0f);
 	m_window_rt = vec2(1.0f, 1.0f);
@@ -84,7 +81,7 @@ void A2::reset()
 
 void A2::clearMotion(int button)
 {
-	m_model_rotation[button] = 0.0f;
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -229,15 +226,15 @@ void A2::initLineData()
 
 //---------------------------------------------------------------------------------------
 void A2::setLineColour (
-		const glm::vec3 & colour
+		const vec3 & colour
 ) {
 	m_currentLineColour = colour;
 }
 
 //---------------------------------------------------------------------------------------
 void A2::drawLine(
-		const glm::vec2 & V0,   // Line Start (NDC coordinate)
-		const glm::vec2 & V1    // Line End (NDC coordinate)
+		const vec2 & V0,   // Line Start (NDC coordinate)
+		const vec2 & V1    // Line End (NDC coordinate)
 ) {
 
 	m_vertexData.positions[m_vertexData.index] = V0;
@@ -248,6 +245,106 @@ void A2::drawLine(
 	++m_vertexData.index;
 
 	m_vertexData.numVertices += 2;
+}
+
+// bool A2::isTrivialAccept(bool *c1, bool *c2) {
+// 	bool c[6];
+// 	for (int i = 0; i < 6; i++) { c[i] = c1[i] || c2[i]; }
+
+// 	for (int i = 0; i < 6; i++) {
+// 		if (c[i] == 1) return false;
+// 	}
+// 	return true;
+// }
+
+// bool A2::isTrivialReject(bool *c1, bool *c2) {
+// 	bool c[6];
+// 	for (int i = 0; i < 6; i++) { c[i] = c1[i] && c2[i]; }
+
+// 	for (int i = 0; i < 6; i++) {
+// 		if (c[i] == 1) return true;
+// 	}
+
+// 	return false;
+// }
+
+bool A2::isTrivialAccept(array<bool, 6> &c1, array<bool, 6> &c2) {
+	array<bool, 6> c;
+
+	for (int i = 0; i < 6; i++) { c[i] = c1[i] || c2[i]; }
+
+	for (int i = 0; i < 6; i++) {
+		if (c[i] == 1) return false;
+	}
+	return true;
+}
+bool A2::isTrivialReject(array<bool, 6> &c1, array<bool, 6> &c2) {
+	array<bool, 6> c;
+
+	for (int i = 0; i < 6; i++) { c[i] = c1[i] && c2[i]; }
+
+	for (int i = 0; i < 6; i++) {
+		if (c[i] == 1) return true;
+	}
+
+	return false;
+}
+
+void A2::setEndpointCode(vec4 *p1, vec4 *p2, array<bool, 6> &c1, array<bool, 6> &c2) {
+	c1[0] = (p1->w + p1->x < 0.0f) ? 1 : 0;
+	c1[1] = (p1->w - p1->x < 0.0f) ? 1 : 0;
+	c1[2] = (p1->w + p1->y < 0.0f) ? 1 : 0;
+	c1[3] = (p1->w - p1->y < 0.0f) ? 1 : 0;
+	c1[4] = (p1->w + p1->z < 0.0f) ? 1 : 0;
+	c1[5] = (p1->w - p1->z < 0.0f) ? 1 : 0;
+
+	c2[0] = (p2->w + p2->x < 0.0f) ? 1 : 0;
+	c2[1] = (p2->w - p2->x < 0.0f) ? 1 : 0;
+	c2[2] = (p2->w + p2->y < 0.0f) ? 1 : 0;
+	c2[3] = (p2->w - p2->y < 0.0f) ? 1 : 0;
+	c2[4] = (p2->w + p2->z < 0.0f) ? 1 : 0;
+	c2[5] = (p2->w - p2->z < 0.0f) ? 1 : 0;
+}
+
+bool A2::clipLine(pair<vec4, vec4> &line) {
+
+	vec4 *p1 = &(line.first);
+	vec4 *p2 = &(line.second);
+
+	array<bool, 6> c1 = {0};
+	array<bool, 6> c2 = {0};
+
+	setEndpointCode(p1, p2, c1, c2);
+
+
+	if (isTrivialReject(c1, c2)) {
+		return true;
+	}
+
+	if (isTrivialAccept(c1, c2)) {
+		return false;
+	}
+}
+
+//----------------------------------------------------------------------------------------
+void A2::clipping(array<bool, 12> &cubeRejected, 
+				  array<bool, 3> &cubeGnomonRejected, 
+				  array<bool, 3> &worldGnomonRejected) {
+
+	for (int i = 0; i < 12; i++) {
+		bool trivial_reject = clipLine(cubeClipped[i]);
+		if (trivial_reject) cubeRejected[i] = true;
+	}
+
+	for (int i = 0; i < 3; i++) {
+		bool trivial_reject = clipLine(cubeGnomonClipped[i]);
+		if (trivial_reject) cubeGnomonRejected[i] = true;
+	}
+
+	for (int i = 0; i < 3; i++) {
+		bool trivial_reject = clipLine(worldGnomonClipped[i]);
+		if (trivial_reject) worldGnomonRejected[i] = true;
+	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -268,14 +365,14 @@ void A2::appLogic()
 	//----------------------------------------------------------------------------------------
 	// Init / Reset view
 
-	glm::mat4 T = glm::transpose(mat4x4(
+	mat4 T = transpose(mat4x4(
 		1,	0,	0,	-m_lookfrom.x,
 		0,	1,	0,	-m_lookfrom.y,
 		0,	0,	1,	-m_lookfrom.z,
 		0,	0,	0,	1
 	));
 
-	glm::mat4 R = glm::transpose(mat4x4(
+	mat4 R = transpose(mat4x4(
 		vx[0],	vx[1],	vx[2],	0,
 		vy[0],	vy[1],	vy[2],	0,
 		vz[0],	vz[1],	vz[2],	0,
@@ -286,7 +383,7 @@ void A2::appLogic()
 
 	//----------------------------------------------------------------------------------------
 	// Projection
-	P = glm::transpose(mat4x4(
+	P = transpose(mat4x4(
 		(cos(m_fov/2)/sin(m_fov/2)) / m_aspect,	0,	0,	0,
 		0,	cos(m_fov/2)/sin(m_fov/2),	0,	0,
 		0,	0,	(m_far + m_near) / (m_far - m_near),	
@@ -298,69 +395,74 @@ void A2::appLogic()
 	// Apply matrices
 	
 	for (int i = 0; i < 8; i++) {
-		// cubeProj[i] = P*V*M_translate*M_rotate*M_scale*cubeModel[i];
 		cubeProj[i] = P*V_translate_rotate*V_view*M_translate_rotate*M_scale*cubeModel[i];
-
-		// Normalize
-		cubeProj[i] = vec4(cubeProj[i][0]/cubeProj[i][3], 
-							cubeProj[i][1]/cubeProj[i][3],
-							cubeProj[i][2]/cubeProj[i][3],
-							1.0f);
 	}
 
 	for (int i = 0; i < 4; i++) {
 		cubeGnomonProj[i] = P*V_translate_rotate*V_view*M_translate_rotate*cubeGnomon[i];
-
-		// Normalize
-		cubeGnomonProj[i] = vec4(cubeGnomonProj[i][0]/cubeGnomonProj[i][3], 
-							cubeGnomonProj[i][1]/cubeGnomonProj[i][3],
-							cubeGnomonProj[i][2]/cubeGnomonProj[i][3],
-							1.0f);
-
 	}
 
 	for (int i = 0; i < 4; i++) {
 		worldGnomonProj[i] = P*V_translate_rotate*V_view*worldGnomon[i];
-
-		// Normalize
-		worldGnomonProj[i] = vec4(worldGnomonProj[i][0]/worldGnomonProj[i][3], 
-							worldGnomonProj[i][1]/worldGnomonProj[i][3],
-							worldGnomonProj[i][2]/worldGnomonProj[i][3],
-							1.0f);
-
 	}
+	//----------------------------------------------------------------------------------------
+	// Upload pairs of points
+	int edgeIndex = 0;
+	for (int i = 0; i <= 4; i += 4) {
+		cubeClipped[edgeIndex++] = {cubeProj[0+i], cubeProj[1+i]};
+		cubeClipped[edgeIndex++] = {cubeProj[1+i], cubeProj[3+i]};
+		cubeClipped[edgeIndex++] = {cubeProj[3+i], cubeProj[2+i]};
+		cubeClipped[edgeIndex++] = {cubeProj[2+i], cubeProj[0+i]};
+	}
+
+	edgeIndex = 8;
+	for (int i = 0; i < 4; i++) {
+		cubeClipped[edgeIndex++] = {cubeProj[0+i], cubeProj[4+i]};
+	}
+
+	edgeIndex = 0; 
+	for (int i = 1; i <= 3; i++) { cubeGnomonClipped[edgeIndex++] = {cubeGnomonProj[0], cubeGnomonProj[i]}; }
+
+	edgeIndex = 0; 
+	for (int i = 1; i <= 3; i++) { worldGnomonClipped[edgeIndex++] = {worldGnomonProj[0], worldGnomonProj[i]}; }
+	//----------------------------------------------------------------------------------------
+	// Clip the lines
+	array<bool, 12> cubeRejected = {0};
+	array<bool, 3> cubeGnomonRejected = {0};
+	array<bool, 3> worldGnomonRejected = {0};
+	clipping(cubeRejected, cubeGnomonRejected, worldGnomonRejected);
+
+	//----------------------------------------------------------------------------------------
+	// Normalize
+
+	for (int i = 0; i < 12; i++) { 
+		normalize(cubeClipped[i].first); 
+		normalize(cubeClipped[i].second);}
+	for (int i = 0; i < 4; i++) { normalize(cubeGnomonClipped[i].first); normalize(cubeGnomonClipped[i].second);}
+	for (int i = 0; i < 4; i++) { normalize(worldGnomonClipped[i].first); normalize(worldGnomonClipped[i].second);}
 
 	//----------------------------------------------------------------------------------------
 	// Proj to window
-	for (int i = 0; i < 8; i++) {
-		cubeFinal[i].x = cubeProj[i].x;
-		cubeFinal[i].y = cubeProj[i].y;
+	for (int i = 0; i < 12; i++) {
+		cubeFinal[i] = vec4PairToVec2Pair(cubeClipped[i]);
 	}
 
-	for (int i = 0; i < 4; i++) {
-		cubeGnomonFinal[i].x = cubeGnomonProj[i].x;
-		cubeGnomonFinal[i].y = cubeGnomonProj[i].y;
-		worldGnomonFinal[i].x = worldGnomonProj[i].x;
-		worldGnomonFinal[i].y = worldGnomonProj[i].y;
+	for (int i = 0; i < 3; i++) {
+		cubeGnomonFinal[i] = vec4PairToVec2Pair(cubeGnomonClipped[i]);
+		worldGnomonFinal[i] = vec4PairToVec2Pair(worldGnomonClipped[i]);
 	}
 
 	//----------------------------------------------------------------------------------------
-	// Window to viewport
+	// Window to viewport  
 
-	float Lw = m_window_rt.x - m_window_lb.x, Hw = m_window_rt.y - m_window_lb.y,
-		  Lv = m_viewport_rt.x - m_viewport_lb.x, Hv = m_viewport_rt.y - m_viewport_lb.y;  
-
-	for (int i = 0; i < 8; i++) {
-		cubeFinal[i].x = (Lv / Lw) * (cubeFinal[i].x - m_window_lb.x) + m_viewport_lb.x;
-		cubeFinal[i].y = (Hv / Hw) * (cubeFinal[i].y - m_window_lb.y) + m_viewport_lb.y;
+	for (int i = 0; i < 12; i++) {
+		cubeFinal[i] = windowToViewport(cubeFinal[i]);
 	}
 
-	for (int i = 0; i < 4; i++) {
-		cubeGnomonFinal[i].x = (Lv / Lw) * (cubeGnomonFinal[i].x - m_window_lb.x) + m_viewport_lb.x;
-		cubeGnomonFinal[i].y = (Hv / Hw) * (cubeGnomonFinal[i].y - m_window_lb.y) + m_viewport_lb.y;
+	for (int i = 0; i < 3; i++) {
+		cubeGnomonFinal[i] = windowToViewport(cubeGnomonFinal[i]);
 
-		worldGnomonFinal[i].x = (Lv / Lw) * (worldGnomonFinal[i].x - m_window_lb.x) + m_viewport_lb.x;
-		worldGnomonFinal[i].y = (Hv / Hw) * (worldGnomonFinal[i].y - m_window_lb.y) + m_viewport_lb.y;
+		worldGnomonFinal[i] = windowToViewport(worldGnomonFinal[i]);
 	}
 
 	//----------------------------------------------------------------------------------------
@@ -377,39 +479,40 @@ void A2::appLogic()
 	// Draw the wireframe cube
 	setLineColour(vec3(1.0f, 1.0f, 1.0f));
 
-	for (int i = 0; i <= 4; i += 4) {
-		drawLine(cubeFinal[0+i], cubeFinal[1+i]);
-		drawLine(cubeFinal[1+i], cubeFinal[3+i]);
-		drawLine(cubeFinal[3+i], cubeFinal[2+i]);
-		drawLine(cubeFinal[2+i], cubeFinal[0+i]);
-	}
-
-	for (int i = 0; i < 4; i++) {
-		drawLine(cubeFinal[0+i], cubeFinal[4+i]);
+	for (int i = 0; i < 12; i++) {
+		if (!cubeRejected[i])
+			drawLine(cubeFinal[i].first, cubeFinal[i].second);
 	}
 
 	//----------------------------------------------------------------------------------------
 	// Draw the cube gnomon
 
 	setLineColour(vec3(1.0f, 0.0f, 0.0f));
-		drawLine(cubeGnomonFinal[0], cubeGnomonFinal[1]);
+	if (!cubeGnomonRejected[0])
+		drawLine(cubeGnomonFinal[0].first, cubeGnomonFinal[0].second);
 
 	setLineColour(vec3(0.0f, 1.0f, 0.0f));
-		drawLine(cubeGnomonFinal[0], cubeGnomonFinal[2]);
+	if (!cubeGnomonRejected[1])
+		drawLine(cubeGnomonFinal[1].first, cubeGnomonFinal[1].second);
 
 	setLineColour(vec3(0.0f, 0.0f, 1.0f));
-		drawLine(cubeGnomonFinal[0], cubeGnomonFinal[3]);
+	if (!cubeGnomonRejected[2])
+		drawLine(cubeGnomonFinal[2].first, cubeGnomonFinal[2].second);
 
 	//----------------------------------------------------------------------------------------
 	// Draw world gnomon
+
 	setLineColour(vec3(0.0f, 1.0f, 1.0f));
-		drawLine(worldGnomonFinal[0], worldGnomonFinal[1]);
+	if (!worldGnomonRejected[0])
+		drawLine(worldGnomonFinal[0].first, worldGnomonFinal[0].second);
 
 	setLineColour(vec3(1.0f, 0.0f, 1.0f));
-		drawLine(worldGnomonFinal[0], worldGnomonFinal[2]);
+	if (!worldGnomonRejected[1])
+		drawLine(worldGnomonFinal[1].first, worldGnomonFinal[1].second);
 
 	setLineColour(vec3(1.0f, 1.0f, 0.0f));
-		drawLine(worldGnomonFinal[0], worldGnomonFinal[3]);
+	if (!worldGnomonRejected[2])
+		drawLine(worldGnomonFinal[2].first, worldGnomonFinal[2].second);
 
 	//----------------------------------------------------------------------------------------
 
@@ -464,13 +567,16 @@ void A2::guiLogic()
 		ImGui::RadioButton("Viewport           (V)", (int*)&current_mode, VIEWPORT);
 
 		// Create Button, and check if it was clicked:
-		if( ImGui::Button( "Quit Application" ) ) {
+		if( ImGui::Button( "Reset               (A)" ) ) {
+			reset();
+		}
+		if( ImGui::Button( "Quit Application    (Q)" ) ) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
 		}
 
 		ImGui::Text( "Framerate: %.1f FPS", ImGui::GetIO().Framerate );
 		ImGui::Text("Near: %.1f, Far: %.1f", m_near, m_far);
-		ImGui::Text("FOV: %.1f", glm::degrees(m_fov));
+		ImGui::Text("FOV: %.1f", degrees(m_fov));
 
 	ImGui::End();
 }
@@ -612,18 +718,25 @@ bool A2::mouseMoveEvent (
 	return eventHandled;
 }
 
+void A2::normalize(vec4 &v) {
+	v = vec4(v[0]/v[3], 
+			v[1]/v[3],
+			v[2]/v[3],
+			1.0f);
+}
+
 void A2::updateModelRotation(double xPos, double yPos) {
 	//----------------------------------------------------------------------------------------
 	// Rotate
 
 	float theta = (xPos - m_prev_xpos) / 300.0f;
 
-	glm::mat4 Rz = glm::mat4x4(1.0f);
-	glm::mat4 Rx = glm::mat4x4(1.0f);
-	glm::mat4 Ry = glm::mat4x4(1.0f);
+	mat4 Rz = mat4x4(1.0f);
+	mat4 Rx = mat4x4(1.0f);
+	mat4 Ry = mat4x4(1.0f);
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
-		Rx = glm::transpose(mat4x4(
+		Rx = transpose(mat4x4(
 			1,	0,	0,	0,
 			0,	cos(theta),	-sin(theta),	0,
 			0,	sin(theta),	cos(theta),	0,
@@ -632,7 +745,7 @@ void A2::updateModelRotation(double xPos, double yPos) {
 	}
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
-		Ry = glm::transpose(mat4x4(
+		Ry = transpose(mat4x4(
 			cos(theta),	0,	sin(theta),	0,
 			0,	1,	0,	0,
 			-sin(theta),	0,	cos(theta),	0,
@@ -641,7 +754,7 @@ void A2::updateModelRotation(double xPos, double yPos) {
 	}
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
-		Rz = glm::transpose(mat4x4(
+		Rz = transpose(mat4x4(
 			cos(theta),	-sin(theta),	0,	0,
 			sin(theta),	cos(theta),	0,	0,
 			0,	0,	1,	0,
@@ -653,7 +766,7 @@ void A2::updateModelRotation(double xPos, double yPos) {
 }
 
 void A2::updateModelScale(double xPos, double yPos) {
-	glm::mat4 S = glm::mat4x4(1.0f);
+	mat4 S = mat4x4(1.0f);
 
 	float s_xyz = (xPos - m_prev_xpos) / 300.0f;
 
@@ -673,7 +786,7 @@ void A2::updateModelScale(double xPos, double yPos) {
 }
 
 void A2::updateModelTranslation(double xPos, double yPos) {
-	glm::mat4 T = glm::mat4x4(1.0f);
+	mat4 T = mat4x4(1.0f);
 
 	float delta_xyz = (xPos - m_prev_xpos) / 200.0f;
 
@@ -693,12 +806,12 @@ void A2::updateModelTranslation(double xPos, double yPos) {
 void A2::updateViewRotation(double xPos, double yPos) {
 	float theta = (xPos - m_prev_xpos) / 300.0f;
 
-	glm::mat4 Rz = glm::mat4x4(1.0f);
-	glm::mat4 Rx = glm::mat4x4(1.0f);
-	glm::mat4 Ry = glm::mat4x4(1.0f);
+	mat4 Rz = mat4x4(1.0f);
+	mat4 Rx = mat4x4(1.0f);
+	mat4 Ry = mat4x4(1.0f);
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
-		Rx = glm::transpose(mat4x4(
+		Rx = transpose(mat4x4(
 			1,	0,	0,	0,
 			0,	cos(theta),	-sin(theta),	0,
 			0,	sin(theta),	cos(theta),	0,
@@ -709,7 +822,7 @@ void A2::updateViewRotation(double xPos, double yPos) {
 	}
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
-		Ry = glm::transpose(mat4x4(
+		Ry = transpose(mat4x4(
 			cos(theta),	0,	sin(theta),	0,
 			0,	1,	0,	0,
 			-sin(theta),	0,	cos(theta),	0,
@@ -720,7 +833,7 @@ void A2::updateViewRotation(double xPos, double yPos) {
 	}
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
-		Rz = glm::transpose(mat4x4(
+		Rz = transpose(mat4x4(
 			cos(theta),	-sin(theta),	0,	0,
 			sin(theta),	cos(theta),	0,	0,
 			0,	0,	1,	0,
@@ -732,7 +845,7 @@ void A2::updateViewRotation(double xPos, double yPos) {
 }
 
 void A2::updateViewTranslation(double xPos, double yPos) {
-	glm::mat4 T = glm::mat4x4(1.0f);
+	mat4 T = mat4x4(1.0f);
 
 	float delta_xyz = (xPos - m_prev_xpos) / 200.0f;
 
@@ -753,7 +866,7 @@ void A2::updatePerspective(double xPos, double yPos) {
 	float offset = (xPos - m_prev_xpos) / 300.0f;
 
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
-		if (m_fov + offset >= glm::radians(5.0f) && m_fov + offset <= glm::radians(160.0f)) {
+		if (m_fov + offset >= radians(5.0f) && m_fov + offset <= radians(160.0f)) {
 			m_fov += offset;
 		}
 	}
@@ -773,14 +886,14 @@ void A2::updateViewport(double xPos, double yPos) {
 	// TODO: implement this
 
 	// Convert the click's absolute pixel location to NDCS coordinate
-	glm::vec2 clickedPosition = vec2(
+	vec2 clickedPosition = vec2(
 		((m_window_rt.x - m_window_lb.x) / (m_windowWidth )) * 
 				xPos + m_window_lb.x, 
 		-(((m_window_rt.y - m_window_lb.y) / (m_windowHeight )) * 
 				yPos + m_window_lb.y)
 	);
 
-	glm::vec2 midPoint = 0.5f * (m_viewport_rt + m_viewport_lb);
+	vec2 midPoint = 0.5f * (m_viewport_rt + m_viewport_lb);
 
 	if (clickedPosition.x < midPoint.x && clickedPosition.y < midPoint.y) {
 		m_viewport_lb = clickedPosition;
@@ -793,6 +906,40 @@ void A2::updateViewport(double xPos, double yPos) {
 		m_viewport_lb.x = clickedPosition.x;
 		m_viewport_rt.y = clickedPosition.y;
 	}
+}
+
+void A2::printMessages() {
+	
+		cout << "---------------------------------Debug message---------------------------------" << endl;
+		cout << endl;
+		for (int i = 0; i < 12; i++) {
+		cout << to_string(cubeClipped[i].first) << ", " << to_string(cubeClipped[i].second) << endl;
+		}
+		cout << endl;
+		cout << "---------------------------------Debug message---------------------------------" << endl;
+}
+
+pair<vec2, vec2> A2::vec4PairToVec2Pair(pair<vec4, vec4> vec4_pair) {
+	return {
+		vec2(vec4_pair.first.x, vec4_pair.first.y), 
+		vec2(vec4_pair.second.x, vec4_pair.second.y)
+		};
+}
+
+pair<vec2, vec2> A2::windowToViewport(pair<vec2, vec2> vec2_pair) {
+		float Lw = m_window_rt.x - m_window_lb.x, Hw = m_window_rt.y - m_window_lb.y,
+		  Lv = m_viewport_rt.x - m_viewport_lb.x, Hv = m_viewport_rt.y - m_viewport_lb.y;
+
+	return {
+		vec2(
+			(Lv / Lw) * (vec2_pair.first.x - m_window_lb.x) + m_viewport_lb.x, 
+			(Hv / Hw) * (vec2_pair.first.y - m_window_lb.y) + m_viewport_lb.y
+		),
+		vec2(
+			(Lv / Lw) * (vec2_pair.second.x - m_window_lb.x) + m_viewport_lb.x, 
+			(Hv / Hw) * (vec2_pair.second.y - m_window_lb.y) + m_viewport_lb.y
+		)
+	};
 }
 
 //----------------------------------------------------------------------------------------
@@ -906,6 +1053,10 @@ bool A2::keyInputEvent (
 		}
 		if (key == GLFW_KEY_V) {
 			current_mode = VIEWPORT;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_B) {
+			printMessages();
 			eventHandled = true;
 		}
 	}
