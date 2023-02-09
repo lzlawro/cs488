@@ -306,16 +306,53 @@ void A2::setEndpointCode(vec4 *p1, vec4 *p2, array<bool, 6> &c1, array<bool, 6> 
 	c2[5] = (p2->w - p2->z < 0.0f) ? 1 : 0;
 }
 
+float A2::calculateIntersection(vec4 *p1, vec4 *p2, int i) {
+	float B1, B2;
+
+	switch (i) {
+		case 0:
+			B1 = p1->w + p1->x;
+			B2 = p2->w + p2->x;
+			break;
+		case 1:
+			B1 = p1->w - p1->x;
+			B2 = p2->w - p2->x;
+			break;
+		case 2:
+			B1 = p1->w + p1->y;
+			B2 = p2->w + p2->y;
+			break;
+		case 3:
+			B1 = p1->w - p1->y;
+			B2 = p2->w - p2->y;
+			break;
+		case 4:
+			B1 = p1->w + p1->z;
+			B2 = p2->w + p2->z;
+			break;
+		case 5:
+			B1 = p1->w - p1->z;
+			B2 = p2->w - p2->z;
+			break;
+	}
+
+	float coefficient = B1 / (B1 - B2);
+
+	return coefficient;
+}
+
 bool A2::clipLine(pair<vec4, vec4> &line) {
 
 	vec4 *p1 = &(line.first);
 	vec4 *p2 = &(line.second);
 
+	vec4 p1_new = *p1;
+	vec4 p2_new = *p2;
+
 	array<bool, 6> c1 = {0};
 	array<bool, 6> c2 = {0};
 
 	setEndpointCode(p1, p2, c1, c2);
-
 
 	if (isTrivialReject(c1, c2)) {
 		return true;
@@ -324,7 +361,34 @@ bool A2::clipLine(pair<vec4, vec4> &line) {
 	if (isTrivialAccept(c1, c2)) {
 		return false;
 	}
+
+	// P(a) = (1-a)*p1 - a*p2
+	// If not trivial accept or reject, then the line has to cross two planes
+	for (int i = 0; i < 6; i++) {
+		if (c1[i] == 1) {
+			float coefficient = calculateIntersection(p1, p2, i);
+			p1_new = (1-coefficient) * (*p1) + coefficient * (*p2);
+		}
+	}
+
+	for (int i = 0; i < 6; i++) {
+		if (c2[i] == 1) {
+			float coefficient = calculateIntersection(p2, p1, i);
+			p2_new = (1-coefficient) * (*p2) + coefficient * (*p1);
+		}
+	}
+
+	*p1 = p1_new;
+	*p2 = p2_new;
+
+	return false;
 }
+/*
+ * Note: I had to create temporary std::array variables inside the applogic() function, I could not
+ * simply add array fields in A2.hpp, because however I tried to update the array fields, The arrays
+ * would always have garbage values
+ * Question: is adding temporary variables like this OK? Can this be more efficient?
+ */
 
 //----------------------------------------------------------------------------------------
 void A2::clipping(array<bool, 12> &cubeRejected, 

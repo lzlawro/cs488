@@ -83,8 +83,7 @@ protected:
 	void setEndpointCode(glm::vec4 *p1, glm::vec4 *p2, std::array<bool, 6> &c1, std::array<bool, 6> &c2);
 	bool isTrivialAccept(std::array<bool, 6> &c1, std::array<bool, 6> &c2);
 	bool isTrivialReject(std::array<bool, 6> &c1, std::array<bool, 6> &c2);
-
-	void resetBoolArrays();
+	float calculateIntersection(glm::vec4 *p1, glm::vec4 *p2, int i);
 
 	void initLineData();
 
