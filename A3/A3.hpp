@@ -49,6 +49,8 @@ protected:
 
 	void initPerspectiveMatrix();
 	void uploadCommonSceneUniforms();
+	
+	void renderSceneNode(const SceneNode *node, glm::mat4 view, glm::mat4 model);
 	void renderSceneGraph(const SceneNode &node);
 	void renderArcCircle();
 
