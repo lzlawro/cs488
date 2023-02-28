@@ -11,6 +11,7 @@
 
 #include <glm/glm.hpp>
 #include <memory>
+#include <stack>
 
 struct LightSource {
 	glm::vec3 position;
@@ -50,7 +51,12 @@ protected:
 	void initPerspectiveMatrix();
 	void uploadCommonSceneUniforms();
 	
-	void renderSceneNode(const SceneNode *node, glm::mat4 view, glm::mat4 model);
+	void renderSceneNode(
+		const SceneNode *node, 
+		glm::mat4 view, 
+		glm::mat4 model,
+		std::stack<glm::mat4> &st
+		);
 	void renderSceneGraph(const SceneNode &node);
 	void renderArcCircle();
 

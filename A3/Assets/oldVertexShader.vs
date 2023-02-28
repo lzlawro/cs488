@@ -19,6 +19,8 @@ uniform mat3 NormalMatrix;
 
 struct Material {
     vec3 kd;
+    vec3 ks;
+    float shininess;
 };
 uniform Material material;
 

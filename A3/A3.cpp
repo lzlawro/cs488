@@ -401,12 +401,15 @@ void A3::draw() {
 //----------------------------------------------------------------------------------------
 void A3::renderSceneNode(
 	const SceneNode *node, 
-	mat4 view, 
-	mat4 model
+	glm::mat4 view, 
+	glm::mat4 model,
+	stack<glm::mat4> &st
 	) {
 	if (node == nullptr) return;
 
-	model = model * node->get_transform();
+	mat4 M_push = node->get_transform();
+	st.push(M_push);
+	model = model * M_push;
 
 	if (node->m_nodeType == NodeType::GeometryNode) {
 		const GeometryNode *geometryNode = static_cast<const GeometryNode *>(node);
@@ -421,8 +424,12 @@ void A3::renderSceneNode(
 	}
 
 	for (const SceneNode *child: node->children) {
-		renderSceneNode(child, view, model);
+		renderSceneNode(child, view, model, st);
 	}
+
+	mat4 M_pop = st.top();
+	st.pop();
+	model = model * inverse(M_pop);
 }
 
 //----------------------------------------------------------------------------------------
@@ -465,7 +472,9 @@ void A3::renderSceneGraph(const SceneNode & root) {
 
 	mat4 rootModel = root.get_transform();
 
-	renderSceneNode(&root, m_view, rootModel * inverse(rootModel));
+	stack<mat4> matStack;
+
+	renderSceneNode(&root, m_view, rootModel * inverse(rootModel), matStack);
 
 	glBindVertexArray(0);
 	CHECK_GL_ERRORS;
