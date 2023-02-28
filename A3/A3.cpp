@@ -31,7 +31,12 @@ A3::A3(const std::string & luaSceneFile)
 	  m_vbo_vertexPositions(0),
 	  m_vbo_vertexNormals(0),
 	  m_vao_arcCircle(0),
-	  m_vbo_arcCircle(0)
+	  m_vbo_arcCircle(0),
+	  current_mode(POSITION_ORIENTATION),
+	  do_circle(false),
+	  do_z_buffer(true),
+	  do_backface_culling(false),
+	  do_frontface_culling(false)
 {
 
 }
@@ -321,7 +326,8 @@ void A3::guiLogic()
 	}
 
 	static bool showDebugWindow(true);
-	ImGuiWindowFlags windowFlags(ImGuiWindowFlags_AlwaysAutoResize);
+	ImGuiWindowFlags windowFlags(ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_MenuBar);
+
 	float opacity(0.5f);
 
 	ImGui::Begin("Properties", &showDebugWindow, ImVec2(100,100), opacity,
@@ -330,9 +336,32 @@ void A3::guiLogic()
 
 		// Add more gui elements here here ...
 
+		if (ImGui::BeginMenuBar())
+		{
+			if (ImGui::BeginMenu("Application"))
+			{
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Edit"))
+			{
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Options"))
+			{
+				ImGui::Checkbox("Circle               (C)", &do_circle);
+				ImGui::Checkbox("Z-buffer             (Z)", &do_z_buffer);
+				ImGui::Checkbox("Backface Culling     (B)", &do_backface_culling);
+				ImGui::Checkbox("Frontface Culling    (F)", &do_frontface_culling);
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenuBar();
+		}
+
+		ImGui::RadioButton("Position/Orientation    (P)", (int*)&current_mode, POSITION_ORIENTATION);
+		ImGui::RadioButton("Joints                  (J)", (int*)&current_mode, JOINTS);
 
 		// Create Button, and check if it was clicked:
-		if( ImGui::Button( "Quit Application" ) ) {
+		if( ImGui::Button( "Quit        (Q))" ) ) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
 		}
 
@@ -390,12 +419,28 @@ static void updateShaderUniforms(
  */
 void A3::draw() {
 
-	glEnable( GL_DEPTH_TEST );
+	if (do_z_buffer) glEnable( GL_DEPTH_TEST );
+
+	if (do_backface_culling && do_frontface_culling) {
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_FRONT_AND_BACK);
+	} else if (do_backface_culling) {
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+	} else if (do_frontface_culling) {
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_FRONT);
+	}
+
 	renderSceneGraph(*m_rootNode);
 
+	if (do_circle) renderArcCircle();
 
-	glDisable( GL_DEPTH_TEST );
-	renderArcCircle();
+	if (do_z_buffer) glDisable( GL_DEPTH_TEST );
+
+	if (do_backface_culling || do_frontface_culling) {
+		glDisable(GL_CULL_FACE);
+	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -600,9 +645,32 @@ bool A3::keyInputEvent (
 			show_gui = !show_gui;
 			eventHandled = true;
 		}
-
 		if (key == GLFW_KEY_Q) {
 			glfwSetWindowShouldClose(m_window, true);
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_P) {
+			current_mode = POSITION_ORIENTATION;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_J) {
+			current_mode = JOINTS;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_C) {
+			do_circle = !do_circle;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_Z) {
+			do_z_buffer = !do_z_buffer;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_B) {
+			do_backface_culling = !do_backface_culling;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_F) {
+			do_frontface_culling = !do_frontface_culling;
 			eventHandled = true;
 		}
 	}

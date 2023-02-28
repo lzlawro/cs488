@@ -79,12 +79,21 @@ protected:
 	GLint m_arc_positionAttribLocation;
 	ShaderProgram m_shader_arcCircle;
 
+	bool do_circle;
+	bool do_z_buffer;
+	bool do_backface_culling;
+	bool do_frontface_culling;
+
 	// BatchInfoMap is an associative container that maps a unique MeshId to a BatchInfo
 	// object. Each BatchInfo object contains an index offset and the number of indices
 	// required to render the mesh with identifier MeshId.
 	BatchInfoMap m_batchInfoMap;
 
 	std::string m_luaSceneFile;
+
+	enum Mode {POSITION_ORIENTATION, JOINTS};
+
+	Mode current_mode;
 
 	std::shared_ptr<SceneNode> m_rootNode;
 };
