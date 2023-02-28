@@ -50,7 +50,7 @@ A3::~A3()
 void A3::init()
 {
 	// Set the background colour.
-	glClearColor(0.85, 0.85, 0.85, 1.0);
+	glClearColor(0.4, 0.4, 0.4, 1.0);
 
 	createShaderProgram();
 
@@ -260,7 +260,7 @@ void A3::initViewMatrix() {
 void A3::initLightSources() {
 	// World-space position
 	m_light.position = vec3(10.0f, 10.0f, 10.0f);
-	m_light.rgbIntensity = vec3(0.0f); // light
+	m_light.rgbIntensity = vec3(0.75f); // light
 }
 
 //----------------------------------------------------------------------------------------
@@ -369,6 +369,15 @@ static void updateShaderUniforms(
 		location = shader.getUniformLocation("material.kd");
 		vec3 kd = node.material.kd;
 		glUniform3fv(location, 1, value_ptr(kd));
+		CHECK_GL_ERRORS;
+
+		location = shader.getUniformLocation("material.ks");
+		vec3 ks = node.material.ks;
+		glUniform3fv(location, 1, value_ptr(ks));
+		CHECK_GL_ERRORS;
+
+		location = shader.getUniformLocation("material.shininess");
+		glUniform1f(location, node.material.shininess);
 		CHECK_GL_ERRORS;
 	}
 	shader.disable();
