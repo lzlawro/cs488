@@ -123,7 +123,7 @@ rightLowerLegJoint:add_child(rightLowerLeg)
 -- ----------------------------------------------------------------------------------------
 -- Right foot
 rightFootJoint = gr.joint('rightFootJoint', {-20, 0, 20}, {-20, 0, 20})
-rightFootJoint:translate(0.0, -0.25, 0.0)
+rightFootJoint:translate(0.0, -0.3, 0.0)
 rightLowerLegJoint:add_child(rightFootJoint)
 
 rightFoot = gr.mesh('sphere', 'rightFoot')
@@ -198,7 +198,7 @@ leftLowerLegJoint:add_child(leftLowerLeg)
 -- ----------------------------------------------------------------------------------------
 -- left foot
 leftFootJoint = gr.joint('leftFootJoint', {-20, 0, 20}, {-20, 0, 20})
-leftFootJoint:translate(0.0, -0.25, 0.0)
+leftFootJoint:translate(0.0, -0.3, 0.0)
 leftLowerLegJoint:add_child(leftFootJoint)
 
 leftFoot = gr.mesh('sphere', 'leftFoot')

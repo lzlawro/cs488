@@ -9,6 +9,9 @@
 
 #include "SceneNode.hpp"
 
+#include "../Trackball_Example/events.h"
+#include "../Trackball_Example/trackball.h"
+
 #include <glm/glm.hpp>
 #include <memory>
 #include <stack>
@@ -67,6 +70,8 @@ protected:
 	void updatePositionOrientation(double xPos, double yPos);
 	void updateJoints(double xPos, double yPos);
 
+	void performTrackballTransformation(double xPos, double yPos);
+
 	void undoJoints();
 	void redoJoints();
 
@@ -94,8 +99,10 @@ protected:
 	GLint m_arc_positionAttribLocation;
 	ShaderProgram m_shader_arcCircle;
 
-	glm::mat4 m_model_translate;
-	glm::mat4 m_model_rotate;
+	glm::mat4 m_model_translation;
+	glm::mat4 m_model_rotation;
+
+	glm::mat4 m_view_rotation;
 
 	bool do_circle;
 	bool do_z_buffer;
