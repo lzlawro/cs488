@@ -739,9 +739,11 @@ void A3::redoJoints() {
 
 void A3::resetPosition() {
 	m_model_translation = mat4(1.0f);
+	m_view_rotation = mat4(1.0f);
 }
 void A3::resetOrientation() {
 	m_model_rotation = mat4(1.0f);
+	m_view_rotation = mat4(1.0f);
 }
 void A3::resetJoints() {}
 void A3::resetAll() { resetPosition(); resetOrientation(); resetJoints(); }
@@ -894,6 +896,7 @@ bool A3::keyInputEvent (
 			glfwSetWindowShouldClose(m_window, true);
 			eventHandled = true;
 		}
+		// Modes
 		if (key == GLFW_KEY_P) {
 			current_mode = POSITION_ORIENTATION;
 			eventHandled = true;
@@ -902,6 +905,7 @@ bool A3::keyInputEvent (
 			current_mode = JOINTS;
 			eventHandled = true;
 		}
+		// Options
 		if (key == GLFW_KEY_C) {
 			do_circle = !do_circle;
 			eventHandled = true;
@@ -918,6 +922,7 @@ bool A3::keyInputEvent (
 			do_frontface_culling = !do_frontface_culling;
 			eventHandled = true;
 		}
+		// Edit
 		if (key == GLFW_KEY_U) {
 			undoJoints();
 			eventHandled = true;
@@ -925,6 +930,19 @@ bool A3::keyInputEvent (
 		if (key == GLFW_KEY_R) {
 			redoJoints();
 			eventHandled = true;
+		}
+		// Application
+		if (key == GLFW_KEY_I) {
+			resetPosition();
+		}
+		if (key == GLFW_KEY_O) {
+			resetOrientation();
+		}
+		if (key == GLFW_KEY_S) {
+			resetJoints();
+		}
+		if (key == GLFW_KEY_A) {
+			resetAll();
 		}
 	}
 	// Fill in with event handling code...
