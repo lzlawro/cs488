@@ -1,5 +1,7 @@
 #version 330
 
+uniform bool picking;
+
 struct LightSource {
     vec3 position;
     vec3 rgbIntensity;
@@ -53,5 +55,6 @@ vec3 phongModel(vec3 fragPosition, vec3 fragNormal) {
 }
 
 void main() {
-	fragColour = vec4(phongModel(fs_in.position_ES, fs_in.normal_ES), 1.0);
+    if (picking) fragColour = vec4(material.kd, 1.0);
+	else fragColour = vec4(phongModel(fs_in.position_ES, fs_in.normal_ES), 1.0);
 }

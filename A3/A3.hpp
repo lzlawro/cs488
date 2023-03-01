@@ -102,12 +102,14 @@ protected:
 	glm::mat4 m_model_translation;
 	glm::mat4 m_model_rotation;
 
-	glm::mat4 m_view_rotation;
+	glm::mat4 m_model_z_rotation;
 
 	bool do_circle;
 	bool do_z_buffer;
 	bool do_backface_culling;
 	bool do_frontface_culling;
+
+	bool do_picking;
 
 	// BatchInfoMap is an associative container that maps a unique MeshId to a BatchInfo
 	// object. Each BatchInfo object contains an index offset and the number of indices

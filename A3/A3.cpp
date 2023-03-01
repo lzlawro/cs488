@@ -35,13 +35,9 @@ A3::A3(const std::string & luaSceneFile)
 	  m_vao_arcCircle(0),
 	  m_vbo_arcCircle(0),
 	  current_mode(POSITION_ORIENTATION),
-	  do_circle(false),
-	  do_z_buffer(true),
-	  do_backface_culling(false),
-	  do_frontface_culling(false),
 	  m_model_translation(mat4(1.0f)),
 	  m_model_rotation(mat4(1.0f)),
-	  m_view_rotation(mat4(1.0f))
+	  m_model_z_rotation(mat4(1.0f))
 {
 
 }
@@ -77,7 +73,8 @@ void A3::init()
 	unique_ptr<MeshConsolidator> meshConsolidator (new MeshConsolidator{
 			getAssetFilePath("cube.obj"),
 			getAssetFilePath("sphere.obj"),
-			getAssetFilePath("suzanne.obj")
+			getAssetFilePath("pyramid.obj"),
+			getAssetFilePath("cylinder.obj")
 	});
 
 
@@ -94,6 +91,13 @@ void A3::init()
 	initViewMatrix();
 
 	initLightSources();
+
+	do_circle=(false);
+	do_z_buffer=(true);
+	do_backface_culling=(false);
+	do_frontface_culling=(false);
+
+	do_picking = false;
 
 
 	// Exiting the current scope calls delete automatically on meshConsolidator freeing
@@ -282,22 +286,26 @@ void A3::uploadCommonSceneUniforms() {
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perpsective));
 		CHECK_GL_ERRORS;
 
+		location = m_shader.getUniformLocation("picking");
+		glUniform1i(location, do_picking ? 1 : 0);
+		CHECK_GL_ERRORS;
+		if (!do_picking){
+			//-- Set LightSource uniform for the scene:
+			{
+				location = m_shader.getUniformLocation("light.position");
+				glUniform3fv(location, 1, value_ptr(m_light.position));
+				location = m_shader.getUniformLocation("light.rgbIntensity");
+				glUniform3fv(location, 1, value_ptr(m_light.rgbIntensity));
+				CHECK_GL_ERRORS;
+			}
 
-		//-- Set LightSource uniform for the scene:
-		{
-			location = m_shader.getUniformLocation("light.position");
-			glUniform3fv(location, 1, value_ptr(m_light.position));
-			location = m_shader.getUniformLocation("light.rgbIntensity");
-			glUniform3fv(location, 1, value_ptr(m_light.rgbIntensity));
-			CHECK_GL_ERRORS;
-		}
-
-		//-- Set background light ambient intensity
-		{
-			location = m_shader.getUniformLocation("ambientIntensity");
-			vec3 ambientIntensity(0.25f);
-			glUniform3fv(location, 1, value_ptr(ambientIntensity));
-			CHECK_GL_ERRORS;
+			//-- Set background light ambient intensity
+			{
+				location = m_shader.getUniformLocation("ambientIntensity");
+				vec3 ambientIntensity(0.25f);
+				glUniform3fv(location, 1, value_ptr(ambientIntensity));
+				CHECK_GL_ERRORS;
+			}
 		}
 	}
 	m_shader.disable();
@@ -389,40 +397,51 @@ void A3::guiLogic()
 static void updateShaderUniforms(
 		const ShaderProgram & shader,
 		const GeometryNode & node,
-		const glm::mat4 & viewRotationMatrix,
 		const glm::mat4 & viewMatrix,
-		const glm::mat4 & modelMatrix
+		const glm::mat4 & modelMatrix,
+		const bool & picking
 ) {
 
 	shader.enable();
 	{
 		//-- Set ModelView matrix:
 		GLint location = shader.getUniformLocation("ModelView");
-		mat4 modelView = viewRotationMatrix * viewMatrix * modelMatrix;
+		mat4 modelView = viewMatrix * modelMatrix;
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
 		CHECK_GL_ERRORS;
+		if (picking) {
+			float r = float(node.m_nodeId & 0xff) / 255.0f;
+			float g = float((node.m_nodeId >> 8) & 0xff) / 255.0f;
+			float b = float((node.m_nodeId >> 16) & 0xff) / 255.0f;
 
-		//-- Set NormMatrix:
-		location = shader.getUniformLocation("NormalMatrix");
-		mat3 normalMatrix = glm::transpose(glm::inverse(mat3(modelView)));
-		glUniformMatrix3fv(location, 1, GL_FALSE, value_ptr(normalMatrix));
-		CHECK_GL_ERRORS;
+			location = shader.getUniformLocation("material.kd");
+			glUniform3f(location, r, g, b);
+			CHECK_GL_ERRORS;
+		} else {
+			//-- Set NormMatrix:
+			location = shader.getUniformLocation("NormalMatrix");
+			mat3 normalMatrix = glm::transpose(glm::inverse(mat3(modelView)));
+			glUniformMatrix3fv(location, 1, GL_FALSE, value_ptr(normalMatrix));
+			CHECK_GL_ERRORS;
 
+			vec3 kd = node.material.kd;
+			vec3 ks = node.material.ks;
+			float shininess = node.material.shininess;
+			// TODO: If node is selected, use fixed material values
 
-		//-- Set Material values:
-		location = shader.getUniformLocation("material.kd");
-		vec3 kd = node.material.kd;
-		glUniform3fv(location, 1, value_ptr(kd));
-		CHECK_GL_ERRORS;
+			//-- Set Material values:
+			location = shader.getUniformLocation("material.kd");
+			glUniform3fv(location, 1, value_ptr(kd));
+			CHECK_GL_ERRORS;
 
-		location = shader.getUniformLocation("material.ks");
-		vec3 ks = node.material.ks;
-		glUniform3fv(location, 1, value_ptr(ks));
-		CHECK_GL_ERRORS;
+			location = shader.getUniformLocation("material.ks");
+			glUniform3fv(location, 1, value_ptr(ks));
+			CHECK_GL_ERRORS;
 
-		location = shader.getUniformLocation("material.shininess");
-		glUniform1f(location, node.material.shininess);
-		CHECK_GL_ERRORS;
+			location = shader.getUniformLocation("material.shininess");
+			glUniform1f(location, shininess);
+			CHECK_GL_ERRORS;
+		}
 	}
 	shader.disable();
 
@@ -474,7 +493,12 @@ void A3::renderSceneNode(
 	if (node->m_nodeType == NodeType::GeometryNode) {
 		const GeometryNode *geometryNode = static_cast<const GeometryNode *>(node);
 
-		updateShaderUniforms(m_shader, *geometryNode, m_view_rotation, view, model);
+		updateShaderUniforms(
+			m_shader, 
+			*geometryNode, 
+			view, 
+			model, 
+			do_picking);
 
 		BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
 
@@ -537,7 +561,7 @@ void A3::renderSceneGraph(const SceneNode & root) {
 	renderSceneNode(
 		&root, 
 		m_view, 
-		m_model_translation * rootModel * m_model_rotation * glm::inverse(rootModel), 
+		m_model_z_rotation * m_model_translation * rootModel * m_model_rotation * glm::inverse(rootModel), 
 		matStack
 		);
 
@@ -592,6 +616,7 @@ void vCalcRotVec(float fNewX, float fNewY,
                  float fOldX, float fOldY,
                  float fDiameter,
 				 bool *fNewOutside, bool *fOldOutside,
+				 vec3 *fNewVec, vec3 *fOldVec,
                  float *fVecX, float *fVecY, float *fVecZ) {
    long  nXOrigin, nYOrigin;
    float fNewVecX, fNewVecY, fNewVecZ,
@@ -601,6 +626,8 @@ void vCalcRotVec(float fNewX, float fNewY,
    fNewVecX    = fNewX * 2.0 / fDiameter;
    fNewVecY    = fNewY * 2.0 / fDiameter;
    fNewVecZ    = (1.0 - fNewVecX * fNewVecX - fNewVecY * fNewVecY);
+
+   *fNewVec = vec3(fNewVecX, fNewVecY, fNewVecZ);
 
     /* If the Z component is less than 0, the mouse point
     * falls outside of the trackball which is interpreted
@@ -620,6 +647,8 @@ void vCalcRotVec(float fNewX, float fNewY,
    fOldVecX    = fOldX * 2.0 / fDiameter;
    fOldVecY    = fOldY * 2.0 / fDiameter;
    fOldVecZ    = (1.0 - fOldVecX * fOldVecX - fOldVecY * fOldVecY);
+
+   *fOldVec = vec3(fOldVecX, fOldVecY, fOldVecZ);
 
    /* If the Z component is less than 0, the mouse point
     * falls outside of the trackball which is interpreted
@@ -713,18 +742,25 @@ void A3::performTrackballTransformation(double xPos, double yPos) {
 
 	bool fNewOutside, fOldOutside;
 
+	vec3 fNewVec, fOldVec;
+
 	vCalcRotVec(fNewModX, fNewModY,
                         fOldModX, fOldModY,
                         fDiameter,
 						&fNewOutside, &fOldOutside,
+						&fNewVec, &fOldVec,
                         &fRotVecX, &fRotVecY, &fRotVecZ);
 
 	vAxisRotMatrix(fRotVecX, -fRotVecY, fRotVecZ, mNewMat);
 
-	// mNewMat = glm::transpose(mNewMat);
+	mNewMat = glm::transpose(mNewMat);
 
-	if (!(fNewOutside && fOldOutside)) m_model_rotation = m_model_rotation * mNewMat;
-	else m_view_rotation = m_view_rotation * mNewMat;
+	m_model_rotation = mNewMat * m_model_rotation;
+
+	// if (!(fNewOutside && fOldOutside)) m_model_rotation = mNewMat * m_model_rotation;
+	// else {
+
+	// }
 }
 
 //----------------------------------------------------------------------------------------
@@ -739,11 +775,9 @@ void A3::redoJoints() {
 
 void A3::resetPosition() {
 	m_model_translation = mat4(1.0f);
-	m_view_rotation = mat4(1.0f);
 }
 void A3::resetOrientation() {
 	m_model_rotation = mat4(1.0f);
-	m_view_rotation = mat4(1.0f);
 }
 void A3::resetJoints() {}
 void A3::resetAll() { resetPosition(); resetOrientation(); resetJoints(); }
@@ -841,6 +875,36 @@ bool A3::mouseButtonInputEvent (
 		button == GLFW_MOUSE_BUTTON_LEFT) {
 			// TODO: handle picking
 			// cout << "Time to handle picking" << endl;
+			double xPos, yPos;
+			glfwGetCursorPos(m_window, &xPos, &yPos);
+
+			do_picking = true;
+
+			uploadCommonSceneUniforms();
+			glClearColor(1.0, 1.0, 1.0, 1.0);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glClearColor(0.4, 0.4, 0.4, 1.0);
+
+			draw();
+
+			CHECK_GL_ERRORS;
+
+			// glFlush();
+			// glFinish();
+
+			xPos *= double(m_framebufferWidth) / double(m_windowWidth);
+			yPos = m_windowHeight - yPos;
+			yPos *= double(m_framebufferHeight) / double(m_windowHeight);
+
+			GLubyte buffer[4] = {0, 0, 0, 0};
+
+			glReadBuffer(GL_BACK);
+			// Actually read the pixel at the mouse location.
+			glReadPixels(int(xPos), int(yPos), 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+
+			do_picking = false;
+
+			CHECK_GL_ERRORS;
 
 			eventHandled = true;
 	}
