@@ -18,6 +18,10 @@ struct LightSource {
 	glm::vec3 rgbIntensity;
 };
 
+struct JointCommand {
+
+};
+
 
 class A3 : public CS488Window {
 public:
@@ -60,6 +64,17 @@ protected:
 	void renderSceneGraph(const SceneNode &node);
 	void renderArcCircle();
 
+	void updatePositionOrientation(double xPos, double yPos);
+	void updateJoints(double xPos, double yPos);
+
+	void undoJoints();
+	void redoJoints();
+
+	void resetPosition();
+	void resetOrientation();
+	void resetJoints();
+	void resetAll();
+
 	glm::mat4 m_perpsective;
 	glm::mat4 m_view;
 
@@ -79,6 +94,9 @@ protected:
 	GLint m_arc_positionAttribLocation;
 	ShaderProgram m_shader_arcCircle;
 
+	glm::mat4 m_model_translate;
+	glm::mat4 m_model_rotate;
+
 	bool do_circle;
 	bool do_z_buffer;
 	bool do_backface_culling;
@@ -96,4 +114,7 @@ protected:
 	Mode current_mode;
 
 	std::shared_ptr<SceneNode> m_rootNode;
+
+	double m_prev_xPos;
+	double m_prev_yPos;
 };

@@ -36,7 +36,9 @@ A3::A3(const std::string & luaSceneFile)
 	  do_circle(false),
 	  do_z_buffer(true),
 	  do_backface_culling(false),
-	  do_frontface_culling(false)
+	  do_frontface_culling(false),
+	  m_model_translate(mat4(1.0f)),
+	  m_model_rotate(mat4(1.0f))
 {
 
 }
@@ -340,10 +342,19 @@ void A3::guiLogic()
 		{
 			if (ImGui::BeginMenu("Application"))
 			{
+				if (ImGui::MenuItem("Reset Position       (I)")) resetPosition();
+				if (ImGui::MenuItem("Reset Orientation    (O)")) resetOrientation();
+				if (ImGui::MenuItem("Reset Joints         (S)")) resetJoints();
+				if (ImGui::MenuItem("Reset All            (A)")) resetAll();
+				if( ImGui::MenuItem("Quit                 (Q)") ) {
+					glfwSetWindowShouldClose(m_window, GL_TRUE);
+				}
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Edit"))
 			{
+				if (ImGui::MenuItem("Undo        (U)")) undoJoints();
+				if (ImGui::MenuItem("Redo        (R)")) redoJoints();
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Options"))
@@ -361,7 +372,7 @@ void A3::guiLogic()
 		ImGui::RadioButton("Joints                  (J)", (int*)&current_mode, JOINTS);
 
 		// Create Button, and check if it was clicked:
-		if( ImGui::Button( "Quit        (Q))" ) ) {
+		if( ImGui::Button("Quit Application    (Q)") ) {
 			glfwSetWindowShouldClose(m_window, GL_TRUE);
 		}
 
@@ -526,6 +537,31 @@ void A3::renderSceneGraph(const SceneNode & root) {
 }
 
 //----------------------------------------------------------------------------------------
+void A3::updatePositionOrientation(double xPos, double yPos) {
+
+}
+
+//----------------------------------------------------------------------------------------
+void A3::updateJoints(double xPos, double yPos) {
+
+}
+
+//----------------------------------------------------------------------------------------
+void A3::undoJoints() {
+
+}
+
+//----------------------------------------------------------------------------------------
+void A3::redoJoints() {
+
+}
+
+void A3::resetPosition() {}
+void A3::resetOrientation() {}
+void A3::resetJoints() {}
+void A3::resetAll() { resetPosition(); resetOrientation(); resetJoints(); }
+
+//----------------------------------------------------------------------------------------
 // Draw the trackball circle.
 void A3::renderArcCircle() {
 	glBindVertexArray(m_vao_arcCircle);
@@ -580,7 +616,19 @@ bool A3::mouseMoveEvent (
 ) {
 	bool eventHandled(false);
 
-	// Fill in with event handling code...
+	if (!ImGui::IsMouseHoveringAnyWindow()) {
+		// Fill in with event handling code...
+		switch(current_mode) {
+			case POSITION_ORIENTATION:
+				updatePositionOrientation(xPos, yPos);
+				eventHandled = true;
+				break;
+			case JOINTS:
+				updateJoints(xPos, yPos);
+				eventHandled = true;
+				break;
+		}
+	}
 
 	return eventHandled;
 }
@@ -597,6 +645,15 @@ bool A3::mouseButtonInputEvent (
 	bool eventHandled(false);
 
 	// Fill in with event handling code...
+	if (!ImGui::IsMouseHoveringAnyWindow() &&
+		actions == GLFW_PRESS &&
+		current_mode == JOINTS &&
+		button == GLFW_MOUSE_BUTTON_LEFT) {
+			// TODO: handle picking
+			// cout << "Time to handle picking" << endl;
+
+			eventHandled = true;
+	}
 
 	return eventHandled;
 }
@@ -671,6 +728,14 @@ bool A3::keyInputEvent (
 		}
 		if (key == GLFW_KEY_F) {
 			do_frontface_culling = !do_frontface_culling;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_U) {
+			undoJoints();
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_R) {
+			redoJoints();
 			eventHandled = true;
 		}
 	}
