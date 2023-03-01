@@ -56,6 +56,7 @@ protected:
 	void initLightSources();
 
 	void initPerspectiveMatrix();
+
 	void uploadCommonSceneUniforms();
 	
 	void renderSceneNode(
@@ -63,7 +64,8 @@ protected:
 		glm::mat4 view, 
 		glm::mat4 model,
 		std::stack<glm::mat4> &st
-		);
+	);
+	
 	void renderSceneGraph(const SceneNode &node);
 	void renderArcCircle();
 
@@ -110,6 +112,8 @@ protected:
 	bool do_frontface_culling;
 
 	bool do_picking;
+
+	std::vector<bool> selected;
 
 	// BatchInfoMap is an associative container that maps a unique MeshId to a BatchInfo
 	// object. Each BatchInfo object contains an index offset and the number of indices

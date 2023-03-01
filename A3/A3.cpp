@@ -92,6 +92,11 @@ void A3::init()
 
 	initLightSources();
 
+	// cout << m_rootNode->totalSceneNodes() << endl;
+	for (int i = 0; i < m_rootNode->totalSceneNodes(); i++) {
+		selected.push_back(false);
+	}
+
 	do_circle=(false);
 	do_z_buffer=(true);
 	do_backface_culling=(false);
@@ -263,7 +268,6 @@ void A3::initPerspectiveMatrix()
 	m_perpsective = glm::perspective(degreesToRadians(60.0f), aspect, 0.1f, 100.0f);
 }
 
-
 //----------------------------------------------------------------------------------------
 void A3::initViewMatrix() {
 	m_view = glm::lookAt(vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, -1.0f),
@@ -399,7 +403,8 @@ static void updateShaderUniforms(
 		const GeometryNode & node,
 		const glm::mat4 & viewMatrix,
 		const glm::mat4 & modelMatrix,
-		const bool & picking
+		const bool & picking,
+		const vector<bool>& selected
 ) {
 
 	shader.enable();
@@ -427,6 +432,13 @@ static void updateShaderUniforms(
 			vec3 kd = node.material.kd;
 			vec3 ks = node.material.ks;
 			float shininess = node.material.shininess;
+
+			if (selected[node.m_nodeId]) {
+				kd = vec3(242.0f/255.0f, 210.0f/255.0f, 189.0f/255.0f);
+				ks = vec3(0.1f, 0.3f, 0.5f);
+				shininess = 1.0f;
+			}
+
 			// TODO: If node is selected, use fixed material values
 
 			//-- Set Material values:
@@ -498,7 +510,9 @@ void A3::renderSceneNode(
 			*geometryNode, 
 			view, 
 			model, 
-			do_picking);
+			do_picking,
+			selected
+			);
 
 		BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
 
@@ -901,6 +915,13 @@ bool A3::mouseButtonInputEvent (
 			glReadBuffer(GL_BACK);
 			// Actually read the pixel at the mouse location.
 			glReadPixels(int(xPos), int(yPos), 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+			CHECK_GL_ERRORS;
+
+			unsigned int what = buffer[0] + (buffer[1] << 8) + (buffer[2] << 16);
+
+			if (what < m_rootNode->totalSceneNodes()) {
+				selected[what] = !selected[what];
+			}
 
 			do_picking = false;
 
