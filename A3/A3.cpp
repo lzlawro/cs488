@@ -955,24 +955,24 @@ void A3::performTrackballTransformation(double xPos, double yPos) {
 
 //----------------------------------------------------------------------------------------
 void A3::undoJoints() {
-	// cout << jointAngleDataIndex << endl;
+	cout << jointAngleDataIndex << endl;
 
-	// if (jointAngleDataIndex - 1 < 0) return;
+	if (jointAngleDataIndex - 1 < 0) return;
 
-	// // cout << "did not return early?" << endl;
+	// cout << "did not return early?" << endl;
 
-	// jointAngleDataIndex--;
-	// updateJointAngleFromJointAngleData();
+	jointAngleDataIndex--;
+	updateJointAngleFromJointAngleData();
 }
 
 //----------------------------------------------------------------------------------------
 void A3::redoJoints() {
-	// cout << jointAngleDataIndex << endl;
+	cout << jointAngleDataIndex << endl;
 
-	// if (jointAngleDataIndex + 1 > jointAngleData.size()-1) return;
+	if (jointAngleDataIndex + 1 > jointAngleData.size()-1) return;
 
-	// jointAngleDataIndex++;
-	// updateJointAngleFromJointAngleData();
+	jointAngleDataIndex++;
+	updateJointAngleFromJointAngleData();
 }
 
 void A3::resetPosition() {
@@ -1126,6 +1126,8 @@ bool A3::mouseButtonInputEvent (
 		actions == GLFW_RELEASE &&
 		current_mode == JOINTS &&
 		(button == GLFW_MOUSE_BUTTON_MIDDLE || button == GLFW_MOUSE_BUTTON_RIGHT)) {
+			jointAngleData.erase(jointAngleData.begin()+1+jointAngleDataIndex, jointAngleData.end());
+			jointAngleDataIndex++;
 			updateJointAngleData();
 
 			cout << jointAngleData.size()<< ", " << jointAngleDataIndex << endl;
