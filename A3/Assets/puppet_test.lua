@@ -37,7 +37,7 @@ root:add_child(torso)
 
 -- ----------------------------------------------------------------------------------------
 -- Shoulders
-shouldersJoint = gr.joint('shouldersJoint', {-20, 0, 20}, {-20, 0, 20})
+shouldersJoint = gr.joint('shouldersJoint', {-90, 0, 90}, {-90, 0, 90})
 shouldersJoint:translate(0.0, 0.4, 0.0)
 root:add_child(shouldersJoint)
 
@@ -49,7 +49,7 @@ shouldersJoint:add_child(shoulders)
 
 -- ----------------------------------------------------------------------------------------
 -- Hip
-hipJoint = gr.joint('hipJoint', {-20, 0, 20}, {-20, 0, 20})
+hipJoint = gr.joint('hipJoint', {-90, 0, 90}, {-90, 0, 90})
 hipJoint:translate(0.0, -0.4, 0.0)
 root:add_child(hipJoint)
 
@@ -61,7 +61,7 @@ hipJoint:add_child(hip)
 
 -- ----------------------------------------------------------------------------------------
 -- Right upper arm
-rightUpperArmJoint = gr.joint('rightUpperArmJoint', {-20, 0, 20}, {-20, 0, 20})
+rightUpperArmJoint = gr.joint('rightUpperArmJoint', {-90, 0, 90}, {-90, 0, 90})
 rightUpperArmJoint:translate(0.35, 0.0, 0.0)
 shouldersJoint:add_child(rightUpperArmJoint)
 
@@ -73,7 +73,7 @@ rightUpperArmJoint:add_child(rightUpperArm)
 
 -- ------------------------------------------------------------------------------------
 -- Right lower arm
-rightLowerArmJoint = gr.joint('rightLowerArmJoint', {-20, 0, 20}, {-20, 0, 20})
+rightLowerArmJoint = gr.joint('rightLowerArmJoint', {-90, 0, 90}, {-90, 0, 90})
 rightLowerArmJoint:translate(0.0, -0.2, 0.0)
 rightUpperArmJoint:add_child(rightLowerArmJoint)
 
@@ -86,7 +86,7 @@ rightLowerArmJoint:add_child(rightLowerArm)
 
 -- ----------------------------------------------------------------------------------------
 -- Right hand
-rightHandJoint = gr.joint('rightHandJoint', {-20, 0, 20}, {-20, 0, 20})
+rightHandJoint = gr.joint('rightHandJoint', {-90, 0, 90}, {-90, 0, 90})
 rightLowerArmJoint:add_child(rightHandJoint)
 
 rightHand = gr.mesh('sphere', 'rightHand')
@@ -98,7 +98,7 @@ rightLowerArmJoint:add_child(rightHand)
 
 -- ----------------------------------------------------------------------------------------
 -- Right upper Leg
-rightUpperLegJoint = gr.joint('rightUpperLegJoint', {-20, 0, 20}, {-20, 0, 20})
+rightUpperLegJoint = gr.joint('rightUpperLegJoint', {-90, 0, 90}, {-90, 0, 90})
 rightUpperLegJoint:translate(0.2, 0.0, 0.0)
 hipJoint:add_child(rightUpperLegJoint)
 
@@ -110,7 +110,7 @@ rightUpperLegJoint:add_child(rightUpperLeg)
 
 -- ----------------------------------------------------------------------------------------
 -- Right Lower Leg
-rightLowerLegJoint = gr.joint('rightLowerLegJoint', {-20, 0, 20}, {-20, 0, 20})
+rightLowerLegJoint = gr.joint('rightLowerLegJoint', {-90, 0, 90}, {-90, 0, 90})
 rightLowerLegJoint:translate(0.0, -0.2, 0.0)
 rightUpperLegJoint:add_child(rightLowerLegJoint)
 
@@ -122,7 +122,7 @@ rightLowerLegJoint:add_child(rightLowerLeg)
 
 -- ----------------------------------------------------------------------------------------
 -- Right foot
-rightFootJoint = gr.joint('rightFootJoint', {-20, 0, 20}, {-20, 0, 20})
+rightFootJoint = gr.joint('rightFootJoint', {-90, 0, 90}, {-90, 0, 90})
 rightFootJoint:translate(0.0, -0.3, 0.0)
 rightLowerLegJoint:add_child(rightFootJoint)
 
@@ -136,7 +136,7 @@ rightFootJoint:add_child(rightFoot)
 
 -- ----------------------------------------------------------------------------------------
 -- left upper arm
-leftUpperArmJoint = gr.joint('leftUpperArmJoint', {-20, 0, 20}, {-20, 0, 20})
+leftUpperArmJoint = gr.joint('leftUpperArmJoint', {-90, 0, 90}, {-90, 0, 90})
 leftUpperArmJoint:translate(-0.35, 0.0, 0.0)
 shouldersJoint:add_child(leftUpperArmJoint)
 
@@ -148,7 +148,7 @@ leftUpperArmJoint:add_child(leftUpperArm)
 
 -- ------------------------------------------------------------------------------------
 -- left lower arm
-leftLowerArmJoint = gr.joint('leftLowerArmJoint', {-20, 0, 20}, {-20, 0, 20})
+leftLowerArmJoint = gr.joint('leftLowerArmJoint', {-90, 0, 90}, {-90, 0, 90})
 leftLowerArmJoint:translate(0.0, -0.2, 0.0)
 leftUpperArmJoint:add_child(leftLowerArmJoint)
 
@@ -161,7 +161,7 @@ leftLowerArmJoint:add_child(leftLowerArm)
 
 -- ----------------------------------------------------------------------------------------
 -- left hand
-leftHandJoint = gr.joint('leftHandJoint', {-20, 0, 20}, {-20, 0, 20})
+leftHandJoint = gr.joint('leftHandJoint', {-90, 0, 90}, {-90, 0, 90})
 leftLowerArmJoint:add_child(leftHandJoint)
 
 leftHand = gr.mesh('sphere', 'leftHand')
@@ -173,7 +173,7 @@ leftLowerArmJoint:add_child(leftHand)
 
 -- ----------------------------------------------------------------------------------------
 -- left upper Leg
-leftUpperLegJoint = gr.joint('leftUpperLegJoint', {-20, 0, 20}, {-20, 0, 20})
+leftUpperLegJoint = gr.joint('leftUpperLegJoint', {-90, 0, 90}, {-90, 0, 90})
 leftUpperLegJoint:translate(-0.2, 0.0, 0.0)
 hipJoint:add_child(leftUpperLegJoint)
 
@@ -185,7 +185,7 @@ leftUpperLegJoint:add_child(leftUpperLeg)
 
 -- ----------------------------------------------------------------------------------------
 -- left Lower Leg
-leftLowerLegJoint = gr.joint('leftLowerLegJoint', {-20, 0, 20}, {-20, 0, 20})
+leftLowerLegJoint = gr.joint('leftLowerLegJoint', {-90, 0, 90}, {-90, 0, 90})
 leftLowerLegJoint:translate(0.0, -0.2, 0.0)
 leftUpperLegJoint:add_child(leftLowerLegJoint)
 
@@ -197,7 +197,7 @@ leftLowerLegJoint:add_child(leftLowerLeg)
 
 -- ----------------------------------------------------------------------------------------
 -- left foot
-leftFootJoint = gr.joint('leftFootJoint', {-20, 0, 20}, {-20, 0, 20})
+leftFootJoint = gr.joint('leftFootJoint', {-90, 0, 90}, {-90, 0, 90})
 leftFootJoint:translate(0.0, -0.3, 0.0)
 leftLowerLegJoint:add_child(leftFootJoint)
 
@@ -211,7 +211,7 @@ leftFootJoint:add_child(leftFoot)
 
 -- ------------------------------------------------------------------------------------
 -- neck
-neckJoint = gr.joint('neckJoint', {-20, 0, 20}, {-20, 0, 20})
+neckJoint = gr.joint('neckJoint', {-90, 0, 90}, {-90, 0, 90})
 neckJoint:translate(0.0, 0.4, 0.0)
 root:add_child(neckJoint)
 
@@ -223,7 +223,7 @@ neckJoint:add_child(neck)
 
 -- ------------------------------------------------------------------------------------
 -- head
-headJoint = gr.joint('headJoint', {-20, 0, 20}, {-20, 0, 20})
+headJoint = gr.joint('headJoint', {-90, 0, 90}, {-90, 0, 90})
 headJoint:translate(0.0, 0.1, 0.0)
 neckJoint:add_child(headJoint)
 

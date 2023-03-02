@@ -8,6 +8,8 @@
 #include "cs488-framework/MeshConsolidator.hpp"
 
 #include "SceneNode.hpp"
+#include "GeometryNode.hpp"
+#include "JointNode.hpp"
 
 #include "../Trackball_Example/events.h"
 #include "../Trackball_Example/trackball.h"
@@ -127,6 +129,9 @@ protected:
 	Mode current_mode;
 
 	std::shared_ptr<SceneNode> m_rootNode;
+
+	JointNode* m_headJoint;
+	SceneNode* m_headNode;
 
 	double m_prev_xPos;
 	double m_prev_yPos;

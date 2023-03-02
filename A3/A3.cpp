@@ -6,14 +6,14 @@ using namespace std;
 
 #include "cs488-framework/GlErrorCheck.hpp"
 #include "cs488-framework/MathUtils.hpp"
-#include "GeometryNode.hpp"
-#include "JointNode.hpp"
 
 #include <imgui/imgui.h>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/io.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <queue>
 
 #include <math.h>
 
@@ -22,6 +22,52 @@ using namespace glm;
 static bool show_gui = true;
 
 const size_t CIRCLE_PTS = 48;
+
+//----------------------------------------------------------------------------------------
+static JointNode* findParentJointFromId(unsigned int id, SceneNode *node) {
+	std::queue<SceneNode *> nodeQueue;
+	// BFS with queue
+	nodeQueue.push(node);
+
+	while (!nodeQueue.empty()) {
+		SceneNode *currentNode = nodeQueue.front();
+		nodeQueue.pop();
+
+		for (SceneNode *child: currentNode->children) {
+			if (child->m_nodeId == id && currentNode->m_nodeType == NodeType::JointNode) {
+				return (JointNode *)currentNode;
+			} else {
+				nodeQueue.push(child);
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+//----------------------------------------------------------------------------------------
+static SceneNode* findHeadNode(SceneNode *node) {
+	std::queue<SceneNode *> nodeQueue;
+	// BFS with queue
+	nodeQueue.push(node);
+
+	while (!nodeQueue.empty()) {
+		SceneNode *currentNode = nodeQueue.front();
+		nodeQueue.pop();
+
+		if (currentNode->m_name == "head") {
+			// cout << "head found" << endl;
+			return currentNode;
+		}
+
+		for (SceneNode *child: currentNode->children) {
+				nodeQueue.push(child);
+		}
+	}
+
+	// cout << "head not found" << endl;
+	return nullptr;
+}
 
 //----------------------------------------------------------------------------------------
 // Constructor
@@ -37,7 +83,9 @@ A3::A3(const std::string & luaSceneFile)
 	  current_mode(POSITION_ORIENTATION),
 	  m_model_translation(mat4(1.0f)),
 	  m_model_rotation(mat4(1.0f)),
-	  m_model_z_rotation(mat4(1.0f))
+	  m_model_z_rotation(mat4(1.0f)),
+	  m_headJoint(nullptr),
+	  m_headNode(nullptr)
 {
 
 }
@@ -104,6 +152,10 @@ void A3::init()
 
 	do_picking = false;
 
+	m_headNode = findHeadNode(m_rootNode.get());
+
+	if (m_headNode != nullptr) 
+		m_headJoint = findParentJointFromId(m_headNode->m_nodeId, m_rootNode.get());
 
 	// Exiting the current scope calls delete automatically on meshConsolidator freeing
 	// all vertex data resources.  This is fine since we already copied this data to
@@ -435,7 +487,7 @@ static void updateShaderUniforms(
 
 			if (selected[node.m_nodeId]) {
 				kd = vec3(242.0f/255.0f, 210.0f/255.0f, 189.0f/255.0f);
-				ks = vec3(0.1f, 0.3f, 0.5f);
+				ks = vec3(1.0f, 1.0f, 1.0f);
 				shininess = 1.0f;
 			}
 
@@ -598,7 +650,7 @@ void A3::updatePositionOrientation(double xPos, double yPos) {
 		translationVector.z = deltaY;
 	}
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
-		// TODO: trackball...
+		// trackball...
 		performTrackballTransformation(xPos, yPos);
 	}
 
@@ -607,7 +659,32 @@ void A3::updatePositionOrientation(double xPos, double yPos) {
 
 //----------------------------------------------------------------------------------------
 void A3::updateJoints(double xPos, double yPos) {
+	float deltaX = (xPos - m_prev_xPos) / 200.0f;
+	float deltaY = (yPos - m_prev_yPos) / 200.0f;
 
+	// Rotate the selected nodes' parent joints
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
+		for (int i = 0; i < m_rootNode->totalSceneNodes(); i++) {
+			if (selected[i]) {
+				JointNode *parentJoint = findParentJointFromId(i, m_rootNode.get());
+				if (parentJoint == nullptr) continue;
+
+				// cout << parentJoint->m_name << endl;
+
+				parentJoint->rotate('y', radiansToDegrees( deltaX ));
+				parentJoint->rotate('x', radiansToDegrees( deltaY ));
+			}
+		}
+	}
+	// Rotate head if head is selected
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
+		if (m_headNode != nullptr && selected[m_headNode->m_nodeId] &&
+			m_headJoint != nullptr) {
+				// cout << "rotating head" << endl;
+				m_headJoint->rotate('y', radiansToDegrees( deltaX ));
+				m_headJoint->rotate('x', radiansToDegrees( deltaY ));
+			}
+	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -917,10 +994,10 @@ bool A3::mouseButtonInputEvent (
 			glReadPixels(int(xPos), int(yPos), 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
 			CHECK_GL_ERRORS;
 
-			unsigned int what = buffer[0] + (buffer[1] << 8) + (buffer[2] << 16);
+			unsigned int nodeId = buffer[0] + (buffer[1] << 8) + (buffer[2] << 16);
 
-			if (what < m_rootNode->totalSceneNodes()) {
-				selected[what] = !selected[what];
+			if (nodeId < m_rootNode->totalSceneNodes()) {
+				selected[nodeId] = !selected[nodeId];
 			}
 
 			do_picking = false;
