@@ -17,16 +17,13 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <stack>
+#include <set>
+#include <unordered_map>
 
 struct LightSource {
 	glm::vec3 position;
 	glm::vec3 rgbIntensity;
 };
-
-struct JointCommand {
-
-};
-
 
 class A3 : public CS488Window {
 public:
@@ -60,6 +57,10 @@ protected:
 	void initPerspectiveMatrix();
 
 	void uploadCommonSceneUniforms();
+
+	void updateJointAngleData();
+
+	void updateJointAngleFromJointAngleData();
 	
 	void renderSceneNode(
 		const SceneNode *node, 
@@ -114,6 +115,10 @@ protected:
 	bool do_frontface_culling;
 
 	bool do_picking;
+
+	int jointAngleDataIndex;
+	
+	std::vector<std::unordered_map<JointNode *, std::pair<float, float>>> jointAngleData;
 
 	std::vector<bool> selected;
 

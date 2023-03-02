@@ -27,6 +27,14 @@ JointNode::JointNode(const std::string& name)
 JointNode::~JointNode() {
 
 }
+
+float JointNode::get_angle_x() {
+	return m_angle_x;
+}
+float JointNode::get_angle_y() {
+	return m_angle_y;
+}
+
  //---------------------------------------------------------------------------------------
 void JointNode::set_joint_x(double min, double init, double max) {
 	m_joint_x.min = min;
@@ -39,6 +47,14 @@ void JointNode::set_joint_y(double min, double init, double max) {
 	m_joint_y.min = min;
 	m_joint_y.init = init;
 	m_joint_y.max = max;
+}
+
+//---------------------------------------------------------------------------------------
+void JointNode::set_angle_x(float angle) {
+	rotate('x', angle - m_angle_x);
+}
+void JointNode::set_angle_y(float angle) {
+	rotate('y', angle - m_angle_y);
 }
 
 void JointNode::rotate(char axis, float angle) {

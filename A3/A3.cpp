@@ -23,10 +23,37 @@ static bool show_gui = true;
 
 const size_t CIRCLE_PTS = 48;
 
+// //----------------------------------------------------------------------------------------
+// static JointNode* findNodeFromId(unsigned int id, SceneNode *node) {
+// 	std::queue<SceneNode *> nodeQueue;
+// 	// BFS with queue
+// 	nodeQueue.push(node);
+
+// 	while (!nodeQueue.empty()) {
+// 		SceneNode *currentNode = nodeQueue.front();
+// 		nodeQueue.pop();
+
+// 		for (SceneNode *child: currentNode->children) {
+// 			if (child->m_nodeId == id && currentNode->m_nodeType == NodeType::JointNode) {
+// 				return (JointNode *)currentNode;
+// 			} else {
+// 				nodeQueue.push(child);
+// 			}
+// 		}
+// 	}
+
+// 	return nullptr;
+// }
+
 //----------------------------------------------------------------------------------------
-static JointNode* findParentJointFromId(unsigned int id, SceneNode *node) {
+static JointNode* findParentJointFromId(unsigned int id, SceneNode *node, 
+										const unsigned int node_count) {
+	bool visited[node_count];
+	for (int i = 0; i < node_count; i++) visited[i] = false;
+
 	std::queue<SceneNode *> nodeQueue;
 	// BFS with queue
+	visited[node->m_nodeId] = true;
 	nodeQueue.push(node);
 
 	while (!nodeQueue.empty()) {
@@ -34,6 +61,10 @@ static JointNode* findParentJointFromId(unsigned int id, SceneNode *node) {
 		nodeQueue.pop();
 
 		for (SceneNode *child: currentNode->children) {
+			if (visited[child->m_nodeId]) continue;
+
+			visited[child->m_nodeId] = true;
+
 			if (child->m_nodeId == id && currentNode->m_nodeType == NodeType::JointNode) {
 				return (JointNode *)currentNode;
 			} else {
@@ -46,9 +77,13 @@ static JointNode* findParentJointFromId(unsigned int id, SceneNode *node) {
 }
 
 //----------------------------------------------------------------------------------------
-static SceneNode* findHeadNode(SceneNode *node) {
+static SceneNode* findHeadNode(SceneNode *node, unsigned int node_count) {
+	bool visited[node_count];
+	for (int i = 0; i < node_count; i++) visited[i] = false;
+
 	std::queue<SceneNode *> nodeQueue;
 	// BFS with queue
+	visited[node->m_nodeId] = true;
 	nodeQueue.push(node);
 
 	while (!nodeQueue.empty()) {
@@ -61,7 +96,11 @@ static SceneNode* findHeadNode(SceneNode *node) {
 		}
 
 		for (SceneNode *child: currentNode->children) {
-				nodeQueue.push(child);
+			if (visited[child->m_nodeId]) continue;
+
+			visited[child->m_nodeId] = true;
+
+			nodeQueue.push(child);
 		}
 	}
 
@@ -152,15 +191,85 @@ void A3::init()
 
 	do_picking = false;
 
-	m_headNode = findHeadNode(m_rootNode.get());
+	m_headNode = findHeadNode(m_rootNode.get(), m_rootNode->totalSceneNodes());
 
 	if (m_headNode != nullptr) 
-		m_headJoint = findParentJointFromId(m_headNode->m_nodeId, m_rootNode.get());
+		m_headJoint = findParentJointFromId(m_headNode->m_nodeId, m_rootNode.get(), m_rootNode->totalSceneNodes());
+
+	// Initialize undo/redo
+
+	// numberOfJoints = 0;
+	jointAngleDataIndex = -1;
+
+	updateJointAngleData();
+
+	// cout << numberOfJoints << endl;
+	// cout << jointAngleData.size() << endl;
+	
 
 	// Exiting the current scope calls delete automatically on meshConsolidator freeing
 	// all vertex data resources.  This is fine since we already copied this data to
 	// VBOs on the GPU.  We have no use for storing vertex data on the CPU side beyond
 	// this point.
+}
+
+//----------------------------------------------------------------------------------------
+void A3::updateJointAngleData() {
+
+	jointAngleDataIndex++;
+
+	const unsigned int node_count = m_rootNode->totalSceneNodes();
+	bool visited[node_count];
+	for (int i = 0; i < node_count; i++) visited[i] = false;
+
+	std::queue<SceneNode *> nodeQueue;
+	// BFS with queue
+	visited[m_rootNode->m_nodeId] = true;
+	nodeQueue.push(m_rootNode.get());
+
+	unordered_map<JointNode *, std::pair<float, float>> initialJointAngles;
+
+	while (!nodeQueue.empty()) {
+		SceneNode *currentNode = nodeQueue.front();
+		nodeQueue.pop();
+
+		if (currentNode->m_nodeType == NodeType::JointNode) {
+			initialJointAngles.insert(
+				{(JointNode *)currentNode, 
+					{
+						((JointNode *)currentNode)->get_angle_x(),
+						((JointNode *)currentNode)->get_angle_y()
+						}
+					});
+		}
+
+		for (SceneNode *child: currentNode->children) {
+			if (visited[child->m_nodeId]) continue;
+
+			visited[child->m_nodeId] = true;
+
+			nodeQueue.push(child);
+		}
+	}
+
+	jointAngleData.push_back(initialJointAngles);
+
+	// cout << initialJointAngles.size() << endl;
+	// cout << jointAngleData.size() << endl;
+}
+//----------------------------------------------------------------------------------------
+void A3::updateJointAngleFromJointAngleData() {
+	unordered_map<JointNode *, std::pair<float, float>> 
+	jointAnglesToBeSet = jointAngleData[jointAngleDataIndex];
+
+	for (const pair<JointNode *, pair<float, float>> &entry: jointAnglesToBeSet) {
+		JointNode *joint = entry.first;
+		float angleX = entry.second.first;
+		float angleY = entry.second.second;
+
+		joint->set_angle_x(angleX);
+		joint->set_angle_y(angleY);
+	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -666,13 +775,13 @@ void A3::updateJoints(double xPos, double yPos) {
 	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
 		for (int i = 0; i < m_rootNode->totalSceneNodes(); i++) {
 			if (selected[i]) {
-				JointNode *parentJoint = findParentJointFromId(i, m_rootNode.get());
+				JointNode *parentJoint = findParentJointFromId(i, m_rootNode.get(), m_rootNode->totalSceneNodes());
 				if (parentJoint == nullptr) continue;
 
 				// cout << parentJoint->m_name << endl;
 
-				parentJoint->rotate('y', radiansToDegrees( deltaX ));
 				parentJoint->rotate('x', radiansToDegrees( deltaY ));
+				parentJoint->rotate('y', radiansToDegrees( deltaX ));
 			}
 		}
 	}
@@ -681,8 +790,9 @@ void A3::updateJoints(double xPos, double yPos) {
 		if (m_headNode != nullptr && selected[m_headNode->m_nodeId] &&
 			m_headJoint != nullptr) {
 				// cout << "rotating head" << endl;
-				m_headJoint->rotate('y', radiansToDegrees( deltaX ));
+
 				m_headJoint->rotate('x', radiansToDegrees( deltaY ));
+				m_headJoint->rotate('y', radiansToDegrees( deltaX ));
 			}
 	}
 }
@@ -856,12 +966,24 @@ void A3::performTrackballTransformation(double xPos, double yPos) {
 
 //----------------------------------------------------------------------------------------
 void A3::undoJoints() {
+	// cout << jointAngleDataIndex << endl;
 
+	// if (jointAngleDataIndex - 1 < 0) return;
+
+	// // cout << "did not return early?" << endl;
+
+	// jointAngleDataIndex--;
+	// updateJointAngleFromJointAngleData();
 }
 
 //----------------------------------------------------------------------------------------
 void A3::redoJoints() {
+	// cout << jointAngleDataIndex << endl;
 
+	// if (jointAngleDataIndex + 1 > jointAngleData.size()-1) return;
+
+	// jointAngleDataIndex++;
+	// updateJointAngleFromJointAngleData();
 }
 
 void A3::resetPosition() {
@@ -1006,6 +1128,15 @@ bool A3::mouseButtonInputEvent (
 
 			eventHandled = true;
 	}
+
+	if (!ImGui::IsMouseHoveringAnyWindow() &&
+		actions == GLFW_RELEASE &&
+		current_mode == JOINTS &&
+		(button == GLFW_MOUSE_BUTTON_MIDDLE || button == GLFW_MOUSE_BUTTON_RIGHT)) {
+			updateJointAngleData();
+
+			cout << jointAngleData.size()<< ", " << jointAngleDataIndex << endl;
+		}
 
 	return eventHandled;
 }
