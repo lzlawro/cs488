@@ -118,7 +118,9 @@ protected:
 
 	int jointAngleDataIndex;
 	
-	std::vector<std::unordered_map<JointNode *, std::pair<float, float>>> jointAngleData;
+	// std::vector<std::unordered_map<JointNode *, std::pair<float, float>>> jointAngleData;
+
+	std::vector<std::unordered_map<JointNode *, glm::mat4>> jointAngleData;
 
 	std::vector<bool> selected;
 

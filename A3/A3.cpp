@@ -198,8 +198,7 @@ void A3::init()
 
 	// Initialize undo/redo
 
-	// numberOfJoints = 0;
-	jointAngleDataIndex = -1;
+	jointAngleDataIndex = 0;
 
 	updateJointAngleData();
 
@@ -216,8 +215,6 @@ void A3::init()
 //----------------------------------------------------------------------------------------
 void A3::updateJointAngleData() {
 
-	jointAngleDataIndex++;
-
 	const unsigned int node_count = m_rootNode->totalSceneNodes();
 	bool visited[node_count];
 	for (int i = 0; i < node_count; i++) visited[i] = false;
@@ -227,7 +224,7 @@ void A3::updateJointAngleData() {
 	visited[m_rootNode->m_nodeId] = true;
 	nodeQueue.push(m_rootNode.get());
 
-	unordered_map<JointNode *, std::pair<float, float>> initialJointAngles;
+	unordered_map<JointNode *, mat4> initialJointAngles;
 
 	while (!nodeQueue.empty()) {
 		SceneNode *currentNode = nodeQueue.front();
@@ -235,12 +232,7 @@ void A3::updateJointAngleData() {
 
 		if (currentNode->m_nodeType == NodeType::JointNode) {
 			initialJointAngles.insert(
-				{(JointNode *)currentNode, 
-					{
-						((JointNode *)currentNode)->get_angle_x(),
-						((JointNode *)currentNode)->get_angle_y()
-						}
-					});
+				{(JointNode *)currentNode, ((JointNode *)currentNode)->get_transform()});
 		}
 
 		for (SceneNode *child: currentNode->children) {
@@ -259,16 +251,13 @@ void A3::updateJointAngleData() {
 }
 //----------------------------------------------------------------------------------------
 void A3::updateJointAngleFromJointAngleData() {
-	unordered_map<JointNode *, std::pair<float, float>> 
+	unordered_map<JointNode *, mat4> 
 	jointAnglesToBeSet = jointAngleData[jointAngleDataIndex];
 
-	for (const pair<JointNode *, pair<float, float>> &entry: jointAnglesToBeSet) {
+	for (const pair<JointNode *, mat4> &entry: jointAnglesToBeSet) {
 		JointNode *joint = entry.first;
-		float angleX = entry.second.first;
-		float angleY = entry.second.second;
 
-		joint->set_angle_x(angleX);
-		joint->set_angle_y(angleY);
+		joint->set_transform(entry.second);
 	}
 }
 
@@ -992,7 +981,11 @@ void A3::resetPosition() {
 void A3::resetOrientation() {
 	m_model_rotation = mat4(1.0f);
 }
-void A3::resetJoints() {}
+void A3::resetJoints() {
+	jointAngleDataIndex = 0;
+	jointAngleData.erase(jointAngleData.begin() + 1, jointAngleData.end());
+	updateJointAngleFromJointAngleData();
+}
 void A3::resetAll() { resetPosition(); resetOrientation(); resetJoints(); }
 
 //----------------------------------------------------------------------------------------
