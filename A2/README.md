@@ -1,4 +1,4 @@
-# CS488 Winter 2023 Assignment 1
+# CS488 Winter 2023 Assignment 2
 
 ## Compilation
 No changes were made to the default premake4/make combination.

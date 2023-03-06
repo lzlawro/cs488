@@ -4,6 +4,7 @@
 
 #include <glm/glm.hpp>
 
+#include "Ray.hpp"
 #include "SceneNode.hpp"
 #include "Light.hpp"
 #include "Image.hpp"
@@ -25,3 +26,6 @@ void A4_Render(
 		const glm::vec3 & ambient,
 		const std::list<Light *> & lights
 );
+
+// Ray color
+glm::vec3 rayColor(const Ray &r);
