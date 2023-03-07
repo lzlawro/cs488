@@ -7,7 +7,7 @@
 using namespace std;
 using namespace glm;
 
-bool hitSphere(const vec3 &center, float radius, const Ray &ray) {
+float hitSphere(const vec3 &center, float radius, const Ray &ray) {
 	vec3 oc = ray.getOrigin() - center;
 
 	float a = dot(ray.getDirection(), ray.getDirection());
@@ -16,19 +16,28 @@ bool hitSphere(const vec3 &center, float radius, const Ray &ray) {
 
 	float discriminant = b*b - 4.0*a*c;
 
-	return discriminant > 0;
+	if (discriminant < 0) return -1.0;
+
+	return (-b - sqrt(discriminant)) / (2.0 * a);
 }
 
 
 vec3 rayColor(const Ray &ray) {
-	if (hitSphere(vec3(0, 0, 700), 10, ray)) {
-		return vec3(1.0, 0.0, 0.0);
+	// if (hitSphere(vec3(0, 0, 750), 10, ray)) {
+	// 	return vec3(1.0, 0.0, 0.0);
+	// }
+
+	float t = hitSphere(vec3(0, 0, 750), 10, ray);
+
+	if (t > 0.0) {
+		vec3 N = normalize(ray.pointAtParameter(t) - vec3(0,0,750));
+		return 0.5*vec3(N.x+1, N.y+1, N.z+1);
 	}
 
 	// Background
 	vec3 unitDirection = normalize(ray.getDirection());
-	float t = 0.5 * (unitDirection.y + 1.0);
-	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.3, 0.3, 1.0);
+	t = 0.5 * (unitDirection.y + 1.0);
+	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.1, 0.3, 1.0);
 }
 
 void A4_Render(
@@ -79,7 +88,7 @@ void A4_Render(
 	// vec3 vertical(0.0, 2.0, 0.0);
 	// vec3 origin(0.0, 0.0, 0.0);
 
-	vec3 vz = normalize(view);
+	vec3 vz = normalize(view-eye);
 	vec3 vx = normalize(cross(vz, up));
 	vec3 vy = cross(vx, vz);
 	float d = (h / 2) / tan(radians(fovy / 2));
