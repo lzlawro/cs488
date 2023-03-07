@@ -7,12 +7,28 @@
 using namespace std;
 using namespace glm;
 
-vec3 rayColor(const Ray &r) {
-	vec3 unitDirection = normalize(r.getDirection());
+bool hitSphere(const vec3 &center, float radius, const Ray &ray) {
+	vec3 oc = ray.getOrigin() - center;
 
+	float a = dot(ray.getDirection(), ray.getDirection());
+	float b = 2.0f * dot(oc, ray.getDirection());
+	float c = dot(oc, oc) - radius*radius;
+
+	float discriminant = b*b - 4.0*a*c;
+
+	return discriminant > 0;
+}
+
+
+vec3 rayColor(const Ray &ray) {
+	if (hitSphere(vec3(0, 0, 700), 10, ray)) {
+		return vec3(1.0, 0.0, 0.0);
+	}
+
+	// Background
+	vec3 unitDirection = normalize(ray.getDirection());
 	float t = 0.5 * (unitDirection.y + 1.0);
-
-	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.3, 0.3, 1.0);
 }
 
 void A4_Render(
@@ -54,20 +70,37 @@ void A4_Render(
 	size_t h = image.height();
 	size_t w = image.width();
 
-	// Specify the parameters that define the camera
-	vec3 lowerLeftCorner(-2.0, -1.0, -1.0);
-	vec3 horizontal(4.0, 0.0, 0.0);
-	vec3 vertical(0.0, 2.0, 0.0);
-	vec3 origin(0.0, 0.0, 0.0);
+	// h = 100;
+	// w = 200;
+
+	// // Specify the (in world coordinate) parameters that define the camera
+	// vec3 lowerLeftCorner(-2.0, -1.0, -1.0);
+	// vec3 horizontal(4.0, 0.0, 0.0);
+	// vec3 vertical(0.0, 2.0, 0.0);
+	// vec3 origin(0.0, 0.0, 0.0);
+
+	vec3 vz = normalize(view);
+	vec3 vx = normalize(cross(vz, up));
+	vec3 vy = cross(vx, vz);
+	float d = (h / 2) / tan(radians(fovy / 2));
+
+	vec3 lowerLeftCorner = vz*d - vx*((float)h/2) - vy*((float)h/2);
 
 	for (uint y = 0; y < h; ++y) {
 		for (uint x = 0; x < w; ++x) {
-			float u = float(x) / float(w);
-			float v = float(y) / float(h);
+			// float u = float(x) / float(w);
+			// float v = float(h-y) / float(h);
 
-			Ray r(origin, lowerLeftCorner + u*horizontal + v*vertical);
+			Ray ray(eye, lowerLeftCorner + (float)(h-y)*vy + (float)x*vx);
 
-			vec3 color = rayColor(r);
+			vec3 color = rayColor(ray);
+
+			// // Red: 
+			// image(x, y, 0) = 0.5f;
+			// // Green: 
+			// image(x, y, 1) = 0.5f;
+			// // Blue: 
+			// image(x, y, 2) = 0.5f;
 
 			// Red: 
 			image(x, y, 0) = color.r;

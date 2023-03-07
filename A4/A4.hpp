@@ -29,3 +29,5 @@ void A4_Render(
 
 // Ray color
 glm::vec3 rayColor(const Ray &r);
+
+bool hitSphere(const glm::vec3 &center, float radius, const Ray &ray);
