@@ -8,6 +8,10 @@
 // #include "cs488-framework/ObjFileDecoder.hpp"
 #include "Mesh.hpp"
 
+bool Mesh::hit(const Ray &ray, float tmin, float tmax, HitRecord &record) const {
+	return false;
+}
+
 Mesh::Mesh( const std::string& fname )
 	: m_vertices()
 	, m_faces()

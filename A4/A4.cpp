@@ -1,8 +1,10 @@
 // Termm--Winter 2023
 
 #include <glm/ext.hpp>
+#include <bits/stdc++.h>
 
 #include "A4.hpp"
+#include "polyroots.hpp"
 
 using namespace std;
 using namespace glm;
@@ -10,15 +12,23 @@ using namespace glm;
 float hitSphere(const vec3 &center, float radius, const Ray &ray) {
 	vec3 oc = ray.getOrigin() - center;
 
-	float a = dot(ray.getDirection(), ray.getDirection());
-	float b = 2.0f * dot(oc, ray.getDirection());
-	float c = dot(oc, oc) - radius*radius;
+	double A = dot(ray.getDirection(), ray.getDirection());
+	double B = 2.0f * dot(oc, ray.getDirection());
+	double C = dot(oc, oc) - radius*radius;
 
-	float discriminant = b*b - 4.0*a*c;
+	// float discriminant = b*b - 4.0*a*c;
 
-	if (discriminant < 0) return -1.0;
+	// if (discriminant < 0) return -1.0;
 
-	return (-b - sqrt(discriminant)) / (2.0 * a);
+	// return (-b - sqrt(discriminant)) / (2.0 * a);
+
+	array<double, 2> roots;
+
+	size_t numberOfRoots = quadraticRoots(A, B, C, roots.data());
+
+	if (numberOfRoots == 0) return -1.0;
+
+	return roots[0] < roots[1] ? roots[0] : roots[1];
 }
 
 
@@ -27,7 +37,7 @@ vec3 rayColor(const Ray &ray) {
 	// 	return vec3(1.0, 0.0, 0.0);
 	// }
 
-	float t = hitSphere(vec3(0, 0, 750), 10, ray);
+	float t = hitSphere(vec3(0, -1200, -500), 1000, ray);
 
 	if (t > 0.0) {
 		vec3 N = normalize(ray.pointAtParameter(t) - vec3(0,0,750));
@@ -88,9 +98,10 @@ void A4_Render(
 	// vec3 vertical(0.0, 2.0, 0.0);
 	// vec3 origin(0.0, 0.0, 0.0);
 
+	// Is view "Lookat"? or is the view already a vector?
 	vec3 vz = normalize(view-eye);
-	vec3 vx = normalize(cross(vz, up));
-	vec3 vy = cross(vx, vz);
+	vec3 vx = normalize(cross(up, vz));
+	vec3 vy = cross(vz, vx);
 	float d = (h / 2) / tan(radians(fovy / 2));
 
 	vec3 lowerLeftCorner = vz*d - vx*((float)h/2) - vy*((float)h/2);
