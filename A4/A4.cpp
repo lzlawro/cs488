@@ -33,7 +33,10 @@ float hitSphere(const vec3 &center, float radius, const Ray &ray) {
 }
 
 
-vec3 rayColor(const Ray &ray, SceneNode *root) {
+vec3 rayColor(
+	const Ray &ray, 
+	SceneNode *root
+	) {
 	// if (hitSphere(vec3(0, 0, 750), 10, ray)) {
 	// 	return vec3(1.0, 0.0, 0.0);
 	// }
@@ -52,6 +55,7 @@ vec3 rayColor(const Ray &ray, SceneNode *root) {
 
 		if (geometryNode->m_primitive->hit(ray, 0.0, closestSoFar, tempRecord)) {
 			hitAnything = true;
+			tempRecord.material = geometryNode->m_material;
 			closestSoFar = tempRecord.t;
 			record = tempRecord;
 		}
@@ -71,6 +75,7 @@ vec3 rayColor(const Ray &ray, SceneNode *root) {
 	// Background
 	vec3 unitDirection = normalize(ray.getDirection());
 	float t = 0.5 * (unitDirection.y + 1.0);
+	// return (t) * vec3(0.0, 0.0, 0.0) + (1.0 - t) * vec3(0.5, 0.7, 1.0);
 	return (1.0-t) * vec3(1.0, 1.0, 1.0) + (t) * vec3(0.5, 0.7, 1.0);
 	// return (1.0-t) * vec3(0.5, 0.5, 0.1) + (t) * vec3(0.3, 0.3, 1.0);
 }
@@ -111,11 +116,13 @@ void A4_Render(
 	std::cout << "\t}" << std::endl;
 	std:: cout <<")" << std::endl;
 
-	size_t h = image.height();
-	size_t w = image.width();
+	size_t ny = image.height();
+	size_t nx = image.width();
 
-	// h = 100;
-	// w = 200;
+	size_t ns = 16;
+
+	// ny = 100;
+	// nx = 200;
 
 	// // Specify the (in world coordinate) parameters that define the camera
 	// vec3 lowerLeftCorner(-2.0, -1.0, -1.0);
@@ -127,18 +134,33 @@ void A4_Render(
 	vec3 vz = normalize(view-eye);
 	vec3 vx = normalize(cross(up, vz));
 	vec3 vy = cross(vz, vx);
-	float d = (h / 2) / tan(radians(fovy / 2));
+	float d = (ny / 2) / tan(radians(fovy / 2));
 
-	vec3 lowerLeftCorner = vz*d - vx*((float)h/2) - vy*((float)h/2);
+	vec3 lowerLeftCorner = vz*d - vx*((float)ny/2) - vy*((float)ny/2);
 
-	for (uint y = 0; y < h; ++y) {
-		for (uint x = 0; x < w; ++x) {
-			// float u = float(x) / float(w);
-			// float v = float(h-y) / float(h);
+	for (uint y = 0; y < ny; ++y) {
+		for (uint x = 0; x < nx; ++x) {
+			// float u = float(x) / float(nx);
+			// float v = float(ny-y) / float(ny);
 
-			Ray ray(eye, lowerLeftCorner + (float)(h-y)*vy + (float)(w-x)*vx);
+			vec3 color(0.0, 0.0, 0.0);
 
-			vec3 color = rayColor(ray, root);
+			if (ns) {
+				for (uint s = 0; s < ns; s++) {
+					float u = float(x + drand48());
+					float v = float(y + drand48());
+
+					Ray ray(eye, lowerLeftCorner + (float)(nx-u)*vx + (float)(ny-v)*vy);
+					vec3 p = ray.pointAtParameter(2.0);
+					color += rayColor(ray, root);
+				}
+
+				color /= float(ns);
+			} else {
+				Ray ray(eye, lowerLeftCorner + (float)(nx-x)*vx + (float)(ny-y)*vy);
+				vec3 p = ray.pointAtParameter(2.0);
+				color = rayColor(ray, root);
+			}
 
 			// // Red: 
 			// image(x, y, 0) = 0.5f;
