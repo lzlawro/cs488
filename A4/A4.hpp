@@ -32,8 +32,11 @@ void A4_Render(
 
 // Ray color
 glm::vec3 rayColor(
-	const Ray &r, 
-	SceneNode *root
+	const Ray &ray, 
+	SceneNode *root,
+	const glm::vec3 & eye,
+	const glm::vec3 & ambient,
+	const std::list<Light *> & lights
 	);
 
 float hitSphere(const glm::vec3 &center, float radius, const Ray &ray);

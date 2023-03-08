@@ -6,6 +6,7 @@
 #include "A4.hpp"
 #include "Primitive.hpp"
 #include "polyroots.hpp"
+#include "PhongMaterial.hpp"
 
 using namespace std;
 using namespace glm;
@@ -35,7 +36,10 @@ float hitSphere(const vec3 &center, float radius, const Ray &ray) {
 
 vec3 rayColor(
 	const Ray &ray, 
-	SceneNode *root
+	SceneNode *root,
+	const glm::vec3 & eye,
+	const glm::vec3 & ambient,
+	const std::list<Light *> & lights
 	) {
 	// if (hitSphere(vec3(0, 0, 750), 10, ray)) {
 	// 	return vec3(1.0, 0.0, 0.0);
@@ -62,7 +66,31 @@ vec3 rayColor(
 	}
 
 	if (hitAnything) {
-		return 0.5 * vec3(record.normal.x+1, record.normal.y+1, record.normal.z+1);
+		// Perform Blinn-Phong shading for each lightsource
+		if (record.material->m_materialType == MaterialType::PhongMaterial) {
+			vec3 L(0.1 * ambient);
+
+			for (const Light * light: lights) {
+				PhongMaterial *phongMaterial = static_cast<PhongMaterial *>(tempRecord.material);
+
+				vec3 kd = phongMaterial->getKd();
+				vec3 ks = phongMaterial->getKs();
+				double shininess = phongMaterial->getShininess();
+
+				vec3 n = normalize(record.normal);
+				vec3 l = normalize(light->position - ray.pointAtParameter(record.t));
+				vec3 v = normalize(eye - ray.pointAtParameter(record.t));
+
+				vec3 h = normalize(length(v)*l + length(l)*v);
+
+				L += kd*light->colour*glm::max((float)0.0, dot(n, l)) +
+					ks*light->colour*glm::pow(glm::max((float)0.0, dot(n, h)), shininess);
+			}
+
+			return L;
+		}
+
+		// return 0.5 * vec3(record.normal.x+1, record.normal.y+1, record.normal.z+1);
 	}
 
 	// float t = hitSphere(vec3(0, -1200, -500), 1000, ray);
@@ -74,8 +102,8 @@ vec3 rayColor(
 
 	// Background
 	vec3 unitDirection = normalize(ray.getDirection());
-	float t = 0.5 * (unitDirection.y + 1.0);
-	// return (t) * vec3(0.0, 0.0, 0.0) + (1.0 - t) * vec3(0.5, 0.7, 1.0);
+	float t = (unitDirection.y + 1.0) / 3.0;
+	// return (t) * vec3(0.0, 0.0, 0.0) + (1.0 - 2.0 * t) * vec3(0.0, 0.0, 0.0) + (1.0 - t) * vec3(0.0, 0.0, 1.0);
 	return (1.0-t) * vec3(1.0, 1.0, 1.0) + (t) * vec3(0.5, 0.7, 1.0);
 	// return (1.0-t) * vec3(0.5, 0.5, 0.1) + (t) * vec3(0.3, 0.3, 1.0);
 }
@@ -152,14 +180,14 @@ void A4_Render(
 
 					Ray ray(eye, lowerLeftCorner + (float)(nx-u)*vx + (float)(ny-v)*vy);
 					vec3 p = ray.pointAtParameter(2.0);
-					color += rayColor(ray, root);
+					color += rayColor(ray, root, eye, ambient, lights);
 				}
 
 				color /= float(ns);
 			} else {
 				Ray ray(eye, lowerLeftCorner + (float)(nx-x)*vx + (float)(ny-y)*vy);
 				vec3 p = ray.pointAtParameter(2.0);
-				color = rayColor(ray, root);
+				color = rayColor(ray, root, eye, ambient, lights);
 			}
 
 			// // Red: 
