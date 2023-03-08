@@ -4,11 +4,13 @@
 
 #include <glm/glm.hpp>
 #include "Ray.hpp"
+#include "Material.hpp"
 
 struct HitRecord {
   float t;
   glm::vec3 p;
   glm::vec3 normal;
+  Material *material;
 };
 
 class Primitive {

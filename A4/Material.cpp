@@ -2,7 +2,8 @@
 
 #include "Material.hpp"
 
-Material::Material()
+Material::Material():
+m_materialType(MaterialType::Material)
 {}
 
 Material::~Material()
