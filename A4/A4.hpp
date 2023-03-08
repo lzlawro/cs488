@@ -6,6 +6,9 @@
 
 #include "Ray.hpp"
 #include "SceneNode.hpp"
+#include "GeometryNode.hpp"
+#include "JointNode.hpp"
+
 #include "Light.hpp"
 #include "Image.hpp"
 
@@ -28,6 +31,6 @@ void A4_Render(
 );
 
 // Ray color
-glm::vec3 rayColor(const Ray &r);
+glm::vec3 rayColor(const Ray &r, SceneNode *root);
 
 float hitSphere(const glm::vec3 &center, float radius, const Ray &ray);

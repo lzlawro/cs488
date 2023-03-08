@@ -4,6 +4,7 @@
 #include <bits/stdc++.h>
 
 #include "A4.hpp"
+#include "Primitive.hpp"
 #include "polyroots.hpp"
 
 using namespace std;
@@ -32,22 +33,46 @@ float hitSphere(const vec3 &center, float radius, const Ray &ray) {
 }
 
 
-vec3 rayColor(const Ray &ray) {
+vec3 rayColor(const Ray &ray, SceneNode *root) {
 	// if (hitSphere(vec3(0, 0, 750), 10, ray)) {
 	// 	return vec3(1.0, 0.0, 0.0);
 	// }
 
-	float t = hitSphere(vec3(0, -1200, -500), 1000, ray);
+	HitRecord record, tempRecord;
 
-	if (t > 0.0) {
-		vec3 N = normalize(ray.pointAtParameter(t) - vec3(0,0,750));
-		return 0.5*vec3(N.x+1, N.y+1, N.z+1);
+	bool hitAnything = false;
+
+	double closestSoFar = MAXFLOAT;
+
+	for (const SceneNode *node: root->children) {
+		if (node->m_nodeType != NodeType::GeometryNode)
+			continue;
+
+		const GeometryNode *geometryNode = static_cast<const GeometryNode *>(node);
+
+		if (geometryNode->m_primitive->hit(ray, 0.0, closestSoFar, tempRecord)) {
+			hitAnything = true;
+			closestSoFar = tempRecord.t;
+			record = tempRecord;
+		}
 	}
+
+	if (hitAnything) {
+		return 0.5 * vec3(record.normal.x+1, record.normal.y+1, record.normal.z+1);
+	}
+
+	// float t = hitSphere(vec3(0, -1200, -500), 1000, ray);
+
+	// if (t > 0.0) {
+	// 	vec3 N = normalize(ray.pointAtParameter(t) - vec3(0,-1200,500));
+	// 	return 0.5*vec3(N.x+1, N.y+1, N.z+1);
+	// }
 
 	// Background
 	vec3 unitDirection = normalize(ray.getDirection());
-	t = 0.5 * (unitDirection.y + 1.0);
-	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.1, 0.3, 1.0);
+	float t = 0.5 * (unitDirection.y + 1.0);
+	return (1.0-t) * vec3(1.0, 1.0, 1.0) + (t) * vec3(0.5, 0.7, 1.0);
+	// return (1.0-t) * vec3(0.5, 0.5, 0.1) + (t) * vec3(0.3, 0.3, 1.0);
 }
 
 void A4_Render(
@@ -111,9 +136,9 @@ void A4_Render(
 			// float u = float(x) / float(w);
 			// float v = float(h-y) / float(h);
 
-			Ray ray(eye, lowerLeftCorner + (float)(h-y)*vy + (float)x*vx);
+			Ray ray(eye, lowerLeftCorner + (float)(h-y)*vy + (float)(w-x)*vx);
 
-			vec3 color = rayColor(ray);
+			vec3 color = rayColor(ray, root);
 
 			// // Red: 
 			// image(x, y, 0) = 0.5f;
