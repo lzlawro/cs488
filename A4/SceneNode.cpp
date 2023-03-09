@@ -171,7 +171,6 @@ void hitDfs(
 
 //---------------------------------------------------------------------------------------
 bool SceneNode::hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const {
-
 	vec3 a = ray.getOrigin();
 	vec3 b = ray.getDirection();
 	vec4 transformedOrigin = invtrans * vec4(a.x, a.y, a.z, 1.0);
@@ -182,11 +181,11 @@ bool SceneNode::hit(const Ray &ray, float t_min, float t_max, HitRecord &record)
 		vec3(transformedDirection.x, transformedDirection.y, transformedDirection.z)
 	);
 
-	HitRecord tempRecord;
 	bool hitAnything = false;
 	double closestSoFar = t_max;
 
 	for (const SceneNode *child: children) {
+		HitRecord tempRecord;
 		// if (child->m_nodeType != NodeType::GeometryNode)
 		// 	continue;
 

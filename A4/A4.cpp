@@ -50,11 +50,10 @@ vec3 rayColor(
 
 	HitRecord record, shadowRecord;
 
-	if (scene->hit(ray, EPSILON, std::numeric_limits<float>::infinity(), record)) {
+	if (scene->hit(ray, EPSILON, std::numeric_limits<float>::max(), record)) {
+		vec3 color(0.2*ambient);
 		// Perform Blinn-Phong shading for each lightsource
 		if (record.material->m_materialType == MaterialType::PhongMaterial) {
-
-			vec3 color(0.2*ambient);
 
 			for (const Light * light: lights) {
 
@@ -64,7 +63,7 @@ vec3 rayColor(
 
 				Ray shadowRay(pAdjusted, light->position - pAdjusted);
 
-				if (!scene->hit(shadowRay, EPSILON, std::numeric_limits<float>::infinity(), shadowRecord)) {
+				if (!scene->hit(shadowRay, 0, std::numeric_limits<float>::infinity(), shadowRecord)) {
 					vec3 l = normalize(shadowRay.getDirection());
 					vec3 n = normalize(record.normal);
 
@@ -76,19 +75,19 @@ vec3 rayColor(
 					
 					vec3 v = normalize(eye - ray.pointAtParameter(record.t));
 
-					vec3 h = normalize(length(v)*l + length(l)*v);
+					vec3 h = normalize(l + normalize(-ray.getDirection()));
 
 					color += kd * light->colour * glm::max((float)0.0, dot(n, l)) +
-						     ks * light->colour * glm::pow(glm::max((float)0.0, dot(n, h)), shininess);
+						     ks * light->colour * glm::pow(dot(n, h), shininess);
 
 				}
 			}
-
-			return color;
 		}
 
+		return color;
 		// return 0.5 * vec3(record.normal.x+1, record.normal.y+1, record.normal.z+1);
 	}
+
 
 	// float t = hitSphere(vec3(0, -1200, -500), 1000, ray);
 
