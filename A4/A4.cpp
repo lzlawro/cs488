@@ -8,6 +8,8 @@
 #include "PhongMaterial.hpp"
 #include <array>
 
+#define EPSILON 0.0001
+
 using namespace std;
 using namespace glm;
 
@@ -48,31 +50,39 @@ vec3 rayColor(
 
 	HitRecord record, shadowRecord;
 
-	if (scene->hit(ray, 0.0001, std::numeric_limits<float>::max(), record)) {
+	if (scene->hit(ray, EPSILON, std::numeric_limits<float>::infinity(), record)) {
 		// Perform Blinn-Phong shading for each lightsource
 		if (record.material->m_materialType == MaterialType::PhongMaterial) {
-			vec3 p = ray.getOrigin() + record.t * ray.getDirection();
 
-			vec3 L(0.2*ambient);
+			vec3 color(0.2*ambient);
 
 			for (const Light * light: lights) {
-				PhongMaterial *phongMaterial = static_cast<PhongMaterial *>(record.material);
 
-				vec3 kd = phongMaterial->getKd();
-				vec3 ks = phongMaterial->getKs();
-				double shininess = phongMaterial->getShininess();
+				vec3 pAdjusted = record.p + (light->position - record.p) * EPSILON;
 
-				vec3 n = normalize(record.normal);
-				vec3 l = normalize(light->position - ray.pointAtParameter(record.t));
-				vec3 v = normalize(eye - ray.pointAtParameter(record.t));
+				Ray shadowRay(pAdjusted, light->position - pAdjusted);
 
-				vec3 h = normalize(length(v)*l + length(l)*v);
+				if (!scene->hit(shadowRay, EPSILON, std::numeric_limits<float>::infinity(), shadowRecord)) {
+					vec3 l = normalize(shadowRay.getDirection());
+					vec3 n = normalize(record.normal);
 
-				L += kd*light->colour*glm::max((float)0.0, dot(n, l)) +
-					ks*light->colour*glm::pow(glm::max((float)0.0, dot(n, h)), shininess);
+					PhongMaterial *phongMaterial = static_cast<PhongMaterial *>(record.material);
+
+					vec3 kd = phongMaterial->getKd();
+					vec3 ks = phongMaterial->getKs();
+					double shininess = phongMaterial->getShininess();
+					
+					vec3 v = normalize(eye - ray.pointAtParameter(record.t));
+
+					vec3 h = normalize(length(v)*l + length(l)*v);
+
+					color += kd * light->colour * glm::max((float)0.0, dot(n, l)) +
+						     ks * light->colour * glm::pow(glm::max((float)0.0, dot(n, h)), shininess);
+
+				}
 			}
 
-			return L;
+			return color;
 		}
 
 		// return 0.5 * vec3(record.normal.x+1, record.normal.y+1, record.normal.z+1);

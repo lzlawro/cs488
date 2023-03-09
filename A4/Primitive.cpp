@@ -4,6 +4,8 @@
 #include "Primitive.hpp"
 #include "polyroots.hpp"
 
+#define EPSILON 0.0001
+
 Primitive::~Primitive()
 {
 }
@@ -97,14 +99,15 @@ bool NonhierCuboid::hit(const Ray &ray, float t_min, float t_max, HitRecord &rec
 
     // Intersection case
     record.t = (tMin < 0 && tMax > 0) ? tMax : tMin;
+    // record.t = tMin;
     record.p = ray.pointAtParameter(record.t);
 
-    if (glm::abs(record.p.x - minCorner.x) < 0.0001) record.normal = glm::vec3(-1.0f, 0, 0);
-    else if (glm::abs(record.p.x - maxCorner.x) < 0.0001) record.normal = glm::vec3(+1.0f, 0, 0);
-    else if (glm::abs(record.p.y - minCorner.y) < 0.0001) record.normal = glm::vec3(0, -1.0f, 0);
-    else if (glm::abs(record.p.y - maxCorner.y) < 0.0001) record.normal = glm::vec3(0, 1.0f, 0);
-    else if (glm::abs(record.p.z - minCorner.z) < 0.0001) record.normal = glm::vec3(0, 0, -1.0f);
-    else if (glm::abs(record.p.z - maxCorner.z) < 0.0001) record.normal = glm::vec3(0, 0, 1.0f);
+    if (glm::abs(record.p.x - minCorner.x) < EPSILON) record.normal = glm::vec3(-1.0f, 0, 0);
+    else if (glm::abs(record.p.x - maxCorner.x) < EPSILON) record.normal = glm::vec3(+1.0f, 0, 0);
+    else if (glm::abs(record.p.y - minCorner.y) < EPSILON) record.normal = glm::vec3(0, -1.0f, 0);
+    else if (glm::abs(record.p.y - maxCorner.y) < EPSILON) record.normal = glm::vec3(0, 1.0f, 0);
+    else if (glm::abs(record.p.z - minCorner.z) < EPSILON) record.normal = glm::vec3(0, 0, -1.0f);
+    else if (glm::abs(record.p.z - maxCorner.z) < EPSILON) record.normal = glm::vec3(0, 0, 1.0f);
     
     return true;
 
