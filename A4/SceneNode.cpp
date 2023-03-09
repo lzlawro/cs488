@@ -7,7 +7,7 @@
 
 #include <iostream>
 #include <sstream>
-#include <queue>
+#include <stack>
 using namespace std;
 
 #include <glm/glm.hpp>
@@ -117,25 +117,55 @@ void hitDfs(
 	float t_max, 
 	HitRecord &record,
 	bool &hit_anything,
-	double &closest_so_far
+	double &closest_so_far,
+	glm::mat4 &M
 	) 
 {
+	
+	if (node == nullptr) return;
 
-	for (const SceneNode *child: node->children) {
-		if (child->m_nodeType != NodeType::GeometryNode)
-			continue;
+	M = node->get_transform() * M;
 
-		const GeometryNode *geometryNode = static_cast<const GeometryNode *>(child);
+	if (node->m_nodeType == NodeType::GeometryNode) {
+		const GeometryNode *geometryNode = static_cast<const GeometryNode *>(node);
+
+		vec3 a = ray.getOrigin();
+		vec3 b = ray.getDirection();
+		vec4 transformedOrigin = glm::inverse(M) * vec4(a.x, a.y, a.z, 1.0);
+		vec4 transformedDirection = glm::inverse(M) * vec4(b.x, b.y, b.z, 0.0);
+
+		Ray transformedRay(
+			vec3(transformedOrigin.x, transformedOrigin.y, transformedOrigin.z),
+			vec3(transformedDirection.x, transformedDirection.y, transformedDirection.z)
+		);
 
 		HitRecord tempRecord;
 
-		if (geometryNode->m_primitive->hit(ray, t_min, closest_so_far, tempRecord)) {
+		if (geometryNode->m_primitive->hit(transformedRay, t_min, closest_so_far, tempRecord)) {
 			hit_anything = true;
 			tempRecord.material = geometryNode->m_material;
+			vec4 transformedNormal = 
+				glm::transpose(glm::inverse(M)) *
+				vec4(
+					tempRecord.normal.x,
+					tempRecord.normal.y,
+					tempRecord.normal.z,
+					0.0
+				);
+			tempRecord.normal = vec3(
+				transformedNormal.x, transformedNormal.y, transformedNormal.z
+			);
 			closest_so_far = tempRecord.t;
 			record = tempRecord;
 		}
 	}
+
+	for (const SceneNode *child: node->children) {
+		hitDfs(child, ray, t_min, t_max, record, hit_anything, closest_so_far, M);
+	}
+
+	M = node->get_inverse() * M;
+
 }
 
 //---------------------------------------------------------------------------------------
@@ -145,8 +175,25 @@ bool SceneNode::hit(const Ray &ray, float t_min, float t_max, HitRecord &record)
 	double closestSoFar = t_max;
 
 	const SceneNode *node = this;
+	glm::mat4 M(1.0f);
 
-	hitDfs(node, ray, t_min, t_max, record, hitAnything, closestSoFar);
+	// for (const SceneNode *child: node->children) {
+	// 	if (child->m_nodeType != NodeType::GeometryNode)
+	// 		continue;
+
+	// 	const GeometryNode *geometryNode = static_cast<const GeometryNode *>(child);
+
+	// 	HitRecord tempRecord;
+
+	// 	if (geometryNode->m_primitive->hit(ray, t_min, closest_so_far, tempRecord)) {
+	// 		hit_anything = true;
+	// 		tempRecord.material = geometryNode->m_material;
+	// 		closest_so_far = tempRecord.t;
+	// 		record = tempRecord;
+	// 	}
+	// }
+
+	hitDfs(node, ray, t_min, t_max, record, hitAnything, closestSoFar, M);
 
 	return hitAnything;
 }
