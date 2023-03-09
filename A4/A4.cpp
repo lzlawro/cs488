@@ -58,7 +58,9 @@ vec3 rayColor(
 
 			for (const Light * light: lights) {
 
-				vec3 pAdjusted = record.p + (light->position - record.p) * EPSILON;
+				vec3 p = ray.pointAtParameter(record.t);
+
+				vec3 pAdjusted = p + (light->position - p) * EPSILON;
 
 				Ray shadowRay(pAdjusted, light->position - pAdjusted);
 

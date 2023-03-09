@@ -55,18 +55,18 @@ bool NonhierSphere::hit(const Ray &ray, float t_min, float t_max, HitRecord &rec
 	if (numberOfRoots > 0) {
         float temp = roots[0] < roots[1] ? roots[0] : roots[1];
         if (temp < t_max && temp > t_min) {
+            glm::vec3 p = ray.pointAtParameter(record.t);
             record.t = temp;
-            record.p = ray.pointAtParameter(record.t);
-            record.normal = (record.p - m_pos) / static_cast<float>(m_radius);
+            record.normal = (p - m_pos) / static_cast<float>(m_radius);
 
             return true;
         }
 
         temp = roots[0] < roots[1] ? roots[1] : roots[0];
         if (temp < t_max && temp > t_min) {
+            glm::vec3 p = ray.pointAtParameter(record.t);
             record.t = temp;
-            record.p = ray.pointAtParameter(record.t);
-            record.normal = (record.p - m_pos) / static_cast<float>(m_radius);
+            record.normal = (p - m_pos) / static_cast<float>(m_radius);
 
             return true;
         }
@@ -103,15 +103,16 @@ bool NonhierCuboid::hit(const Ray &ray, float t_min, float t_max, HitRecord &rec
 
     // Intersection case
     record.t = (tMin < 0 && tMax > 0) ? tMax : tMin;
-    // record.t = tMin;
-    record.p = ray.pointAtParameter(record.t);
 
-    if (glm::abs(record.p.x - minCorner.x) < EPSILON) record.normal = glm::vec3(-1.0f, 0, 0);
-    else if (glm::abs(record.p.x - maxCorner.x) < EPSILON) record.normal = glm::vec3(+1.0f, 0, 0);
-    else if (glm::abs(record.p.y - minCorner.y) < EPSILON) record.normal = glm::vec3(0, -1.0f, 0);
-    else if (glm::abs(record.p.y - maxCorner.y) < EPSILON) record.normal = glm::vec3(0, 1.0f, 0);
-    else if (glm::abs(record.p.z - minCorner.z) < EPSILON) record.normal = glm::vec3(0, 0, -1.0f);
-    else if (glm::abs(record.p.z - maxCorner.z) < EPSILON) record.normal = glm::vec3(0, 0, 1.0f);
+    glm::vec3 p = ray.pointAtParameter(record.t);
+    // record.t = tMin;
+
+    if (glm::abs(p.x - minCorner.x) < EPSILON) record.normal = glm::vec3(-1.0f, 0, 0);
+    else if (glm::abs(p.x - maxCorner.x) < EPSILON) record.normal = glm::vec3(+1.0f, 0, 0);
+    else if (glm::abs(p.y - minCorner.y) < EPSILON) record.normal = glm::vec3(0, -1.0f, 0);
+    else if (glm::abs(p.y - maxCorner.y) < EPSILON) record.normal = glm::vec3(0, 1.0f, 0);
+    else if (glm::abs(p.z - minCorner.z) < EPSILON) record.normal = glm::vec3(0, 0, -1.0f);
+    else if (glm::abs(p.z - maxCorner.z) < EPSILON) record.normal = glm::vec3(0, 0, 1.0f);
     
     return true;
 

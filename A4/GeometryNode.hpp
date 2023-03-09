@@ -13,6 +13,8 @@ public:
 
 	void setMaterial( Material *material );
 
+	virtual bool hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const override;
+
 	Material *m_material;
 	Primitive *m_primitive;
 };

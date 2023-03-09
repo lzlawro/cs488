@@ -42,7 +42,7 @@ public:
     void scale(const glm::vec3& amount);
     void translate(const glm::vec3& amount);
 
-    bool hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const;
+    virtual bool hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const;
 
 	friend std::ostream & operator << (std::ostream & os, const SceneNode & node);
 

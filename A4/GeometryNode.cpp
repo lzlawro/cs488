@@ -2,6 +2,15 @@
 
 #include "GeometryNode.hpp"
 
+#include <iostream>
+using namespace std;
+
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
+#include <glm/gtx/transform.hpp>
+
+using namespace glm;
+
 //---------------------------------------------------------------------------------------
 GeometryNode::GeometryNode(
 	const std::string & name, Primitive *prim, Material *mat )
@@ -26,4 +35,53 @@ void GeometryNode::setMaterial( Material *mat )
 	//     crash the program.
 
 	m_material = mat;
+}
+
+//---------------------------------------------------------------------------------------
+bool GeometryNode::hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const {
+	vec3 a = ray.getOrigin();
+	vec3 b = ray.getDirection();
+	vec4 transformedOrigin = invtrans * vec4(a.x, a.y, a.z, 1.0);
+	vec4 transformedDirection = invtrans * vec4(b.x, b.y, b.z, 0.0);
+
+	Ray transformedRay(
+		vec3(transformedOrigin.x, transformedOrigin.y, transformedOrigin.z),
+		vec3(transformedDirection.x, transformedDirection.y, transformedDirection.z)
+	);
+
+	HitRecord tempRecord;
+	tempRecord.material = nullptr;
+	bool hitAnything = false;
+	double closestSoFar = t_max;
+
+	for (const SceneNode *child: children) {
+		if (child->hit(transformedRay, t_min, closestSoFar, tempRecord)) {
+			hitAnything = true;
+			closestSoFar = tempRecord.t;
+			record = tempRecord;
+		}
+	}
+
+	if (m_primitive->hit(transformedRay, t_min, closestSoFar, tempRecord)) {
+		if (tempRecord.material == nullptr) tempRecord.material = m_material;
+		hitAnything = true;
+		closestSoFar = tempRecord.t;
+		record = tempRecord;
+	}
+
+	if (hitAnything) {
+		vec4 transformedNormal = 
+				glm::transpose(invtrans) *
+				vec4(
+					record.normal.x,
+					record.normal.y,
+					record.normal.z,
+					0.0
+				);
+			record.normal = vec3(
+				transformedNormal.x, transformedNormal.y, transformedNormal.z
+			);
+	}
+
+	return hitAnything;
 }

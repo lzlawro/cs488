@@ -109,6 +109,7 @@ void SceneNode::translate(const glm::vec3& amount) {
 	set_transform( glm::translate(amount) * trans );
 }
 
+// Useless
 //---------------------------------------------------------------------------------------
 void hitDfs(
 	const SceneNode *node,
@@ -171,29 +172,54 @@ void hitDfs(
 //---------------------------------------------------------------------------------------
 bool SceneNode::hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const {
 
+	vec3 a = ray.getOrigin();
+	vec3 b = ray.getDirection();
+	vec4 transformedOrigin = invtrans * vec4(a.x, a.y, a.z, 1.0);
+	vec4 transformedDirection = invtrans * vec4(b.x, b.y, b.z, 0.0);
+
+	Ray transformedRay(
+		vec3(transformedOrigin.x, transformedOrigin.y, transformedOrigin.z),
+		vec3(transformedDirection.x, transformedDirection.y, transformedDirection.z)
+	);
+
+	HitRecord tempRecord;
 	bool hitAnything = false;
 	double closestSoFar = t_max;
 
-	const SceneNode *node = this;
-	glm::mat4 M(1.0f);
+	for (const SceneNode *child: children) {
+		// if (child->m_nodeType != NodeType::GeometryNode)
+		// 	continue;
 
-	// for (const SceneNode *child: node->children) {
-	// 	if (child->m_nodeType != NodeType::GeometryNode)
-	// 		continue;
+		// const GeometryNode *geometryNode = static_cast<const GeometryNode *>(child);
 
-	// 	const GeometryNode *geometryNode = static_cast<const GeometryNode *>(child);
+		// HitRecord tempRecord;
 
-	// 	HitRecord tempRecord;
+		// if (geometryNode->m_primitive->hit(ray, t_min, closestSoFar, tempRecord)) {
+		// 	hitAnything = true;
+		// 	tempRecord.material = geometryNode->m_material;
+		// 	closestSoFar = tempRecord.t;
+		// 	record = tempRecord;
+		// }
+		if (child->hit(transformedRay, t_min, closestSoFar, tempRecord)) {
+			hitAnything = true;
+			closestSoFar = tempRecord.t;
+			record = tempRecord;
+		}
+	}
 
-	// 	if (geometryNode->m_primitive->hit(ray, t_min, closest_so_far, tempRecord)) {
-	// 		hit_anything = true;
-	// 		tempRecord.material = geometryNode->m_material;
-	// 		closest_so_far = tempRecord.t;
-	// 		record = tempRecord;
-	// 	}
-	// }
-
-	hitDfs(node, ray, t_min, t_max, record, hitAnything, closestSoFar, M);
+	if (hitAnything) {
+		vec4 transformedNormal = 
+				glm::transpose(invtrans) *
+				vec4(
+					record.normal.x,
+					record.normal.y,
+					record.normal.z,
+					0.0
+				);
+			record.normal = vec3(
+				transformedNormal.x, transformedNormal.y, transformedNormal.z
+			);
+	}
 
 	return hitAnything;
 }

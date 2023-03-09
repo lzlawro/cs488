@@ -56,7 +56,6 @@ bool Mesh::hit(const Ray &ray, float t_min, float t_max, HitRecord &record) cons
 
 		// Hit case
 		record.t = t;
-		record.p = ray.pointAtParameter(t);
 		record.normal = glm::cross(col1, col2);
 		return true;
 	}
