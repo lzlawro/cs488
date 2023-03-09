@@ -68,7 +68,7 @@ vec3 rayColor(
 	if (hitAnything) {
 		// Perform Blinn-Phong shading for each lightsource
 		if (record.material->m_materialType == MaterialType::PhongMaterial) {
-			vec3 L(0.1 * ambient);
+			vec3 L(0.1*ambient);
 
 			for (const Light * light: lights) {
 				PhongMaterial *phongMaterial = static_cast<PhongMaterial *>(tempRecord.material);
@@ -102,10 +102,17 @@ vec3 rayColor(
 
 	// Background
 	vec3 unitDirection = normalize(ray.getDirection());
-	float t = (unitDirection.y + 1.0) / 3.0;
+	float t = (normalize(unitDirection).y + 0.5);
 	// return (t) * vec3(0.0, 0.0, 0.0) + (1.0 - 2.0 * t) * vec3(0.0, 0.0, 0.0) + (1.0 - t) * vec3(0.0, 0.0, 1.0);
-	return (1.0-t) * vec3(1.0, 1.0, 1.0) + (t) * vec3(0.5, 0.7, 1.0);
+	return (1.0-t) * vec3(0.2, 0.2, 1.0) + (t) * vec3(0.0, 0.0, 0.0);
 	// return (1.0-t) * vec3(0.5, 0.5, 0.1) + (t) * vec3(0.3, 0.3, 1.0);
+
+	// // Background
+	// vec3 unitDirection = normalize(ray.getDirection());
+	// float t = (unitDirection.y + 1.0) / 3.0;
+	// // return (t) * vec3(0.0, 0.0, 0.0) + (1.0 - 2.0 * t) * vec3(0.0, 0.0, 0.0) + (1.0 - t) * vec3(0.0, 0.0, 1.0);
+	// return (1.0-t) * vec3(1.0, 1.0, 1.0) + (t) * vec3(0.5, 0.7, 1.0);
+	// // return (1.0-t) * vec3(0.5, 0.5, 0.1) + (t) * vec3(0.3, 0.3, 1.0);
 }
 
 void A4_Render(
