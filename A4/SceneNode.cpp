@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <queue>
 using namespace std;
 
 #include <glm/glm.hpp>
@@ -107,26 +108,45 @@ void SceneNode::scale(const glm::vec3 & amount) {
 void SceneNode::translate(const glm::vec3& amount) {
 	set_transform( glm::translate(amount) * trans );
 }
+
 //---------------------------------------------------------------------------------------
-bool SceneNode::hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const {
+void hitDfs(
+	const SceneNode *node,
+	const Ray &ray, 
+	float t_min, 
+	float t_max, 
+	HitRecord &record,
+	bool &hit_anything,
+	double &closest_so_far
+	) 
+{
 
-	HitRecord tempRecord;
-	bool hitAnything = false;
-	double closestSoFar = t_max;
-
-	for (const SceneNode *node: children) {
-		if (node->m_nodeType != NodeType::GeometryNode)
+	for (const SceneNode *child: node->children) {
+		if (child->m_nodeType != NodeType::GeometryNode)
 			continue;
 
-		const GeometryNode *geometryNode = static_cast<const GeometryNode *>(node);
+		const GeometryNode *geometryNode = static_cast<const GeometryNode *>(child);
 
-		if (geometryNode->m_primitive->hit(ray, t_min, closestSoFar, tempRecord)) {
-			hitAnything = true;
+		HitRecord tempRecord;
+
+		if (geometryNode->m_primitive->hit(ray, t_min, closest_so_far, tempRecord)) {
+			hit_anything = true;
 			tempRecord.material = geometryNode->m_material;
-			closestSoFar = tempRecord.t;
+			closest_so_far = tempRecord.t;
 			record = tempRecord;
 		}
 	}
+}
+
+//---------------------------------------------------------------------------------------
+bool SceneNode::hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const {
+
+	bool hitAnything = false;
+	double closestSoFar = t_max;
+
+	const SceneNode *node = this;
+
+	hitDfs(node, ray, t_min, t_max, record, hitAnything, closestSoFar);
 
 	return hitAnything;
 }

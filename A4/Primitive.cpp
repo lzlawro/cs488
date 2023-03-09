@@ -16,7 +16,9 @@ Sphere::~Sphere()
 
 bool Sphere::hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const
 {
-    return false;
+    NonhierSphere baseSphere(glm::vec3(0, 0, 0), 1.0);
+
+    return baseSphere.hit(ray, t_min, t_max, record);
 }
 
 Cube::~Cube()
@@ -25,7 +27,9 @@ Cube::~Cube()
 
 bool Cube::hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const
 {
-    return false;
+    NonhierBox baseCube(glm::vec3(0, 0, 0), 1.0);
+
+    return baseCube.hit(ray, t_min, t_max, record);
 }
 
 NonhierSphere::~NonhierSphere()
