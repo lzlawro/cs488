@@ -12,6 +12,9 @@
 #include "Light.hpp"
 #include "Image.hpp"
 
+// Comment this option to turn it off.
+#define ENABLE_RANDOM_SAMPLING
+
 void A4_Render(
 		// What to render
 		SceneNode * root,
@@ -33,7 +36,7 @@ void A4_Render(
 // Ray color
 glm::vec3 rayColor(
 	const Ray &ray, 
-	SceneNode *root,
+	SceneNode *scene,
 	const glm::vec3 & eye,
 	const glm::vec3 & ambient,
 	const std::list<Light *> & lights

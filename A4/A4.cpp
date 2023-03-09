@@ -37,7 +37,7 @@ float hitSphere(const vec3 &center, float radius, const Ray &ray) {
 
 vec3 rayColor(
 	const Ray &ray, 
-	SceneNode *root,
+	SceneNode *scene,
 	const glm::vec3 & eye,
 	const glm::vec3 & ambient,
 	const std::list<Light *> & lights
@@ -46,33 +46,17 @@ vec3 rayColor(
 	// 	return vec3(1.0, 0.0, 0.0);
 	// }
 
-	HitRecord record, tempRecord;
+	HitRecord record, shadowRecord;
 
-	bool hitAnything = false;
-
-	double closestSoFar = std::numeric_limits<float>::max();
-
-	for (const SceneNode *node: root->children) {
-		if (node->m_nodeType != NodeType::GeometryNode)
-			continue;
-
-		const GeometryNode *geometryNode = static_cast<const GeometryNode *>(node);
-
-		if (geometryNode->m_primitive->hit(ray, 0.0001, closestSoFar, tempRecord)) {
-			hitAnything = true;
-			tempRecord.material = geometryNode->m_material;
-			closestSoFar = tempRecord.t;
-			record = tempRecord;
-		}
-	}
-
-	if (hitAnything) {
+	if (scene->hit(ray, 0.0001, std::numeric_limits<float>::max(), record)) {
 		// Perform Blinn-Phong shading for each lightsource
 		if (record.material->m_materialType == MaterialType::PhongMaterial) {
-			vec3 L(0.1*ambient);
+			vec3 p = ray.getOrigin() + record.t * ray.getDirection();
+
+			vec3 L(0.2*ambient);
 
 			for (const Light * light: lights) {
-				PhongMaterial *phongMaterial = static_cast<PhongMaterial *>(tempRecord.material);
+				PhongMaterial *phongMaterial = static_cast<PhongMaterial *>(record.material);
 
 				vec3 kd = phongMaterial->getKd();
 				vec3 ks = phongMaterial->getKs();
@@ -153,7 +137,11 @@ void A4_Render(
 	size_t ny = image.height();
 	size_t nx = image.width();
 
+	#ifdef ENABLE_RANDOM_SAMPLING
 	size_t ns = 16;
+	#else
+	size_t ns = 0;
+	#endif
 
 	// ny = 100;
 	// nx = 200;

@@ -1,6 +1,7 @@
 // Termm--Fall 2020
 
 #include "SceneNode.hpp"
+#include "GeometryNode.hpp"
 
 #include "cs488-framework/MathUtils.hpp"
 
@@ -105,6 +106,29 @@ void SceneNode::scale(const glm::vec3 & amount) {
 //---------------------------------------------------------------------------------------
 void SceneNode::translate(const glm::vec3& amount) {
 	set_transform( glm::translate(amount) * trans );
+}
+//---------------------------------------------------------------------------------------
+bool SceneNode::hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const {
+
+	HitRecord tempRecord;
+	bool hitAnything = false;
+	double closestSoFar = t_max;
+
+	for (const SceneNode *node: children) {
+		if (node->m_nodeType != NodeType::GeometryNode)
+			continue;
+
+		const GeometryNode *geometryNode = static_cast<const GeometryNode *>(node);
+
+		if (geometryNode->m_primitive->hit(ray, t_min, closestSoFar, tempRecord)) {
+			hitAnything = true;
+			tempRecord.material = geometryNode->m_material;
+			closestSoFar = tempRecord.t;
+			record = tempRecord;
+		}
+	}
+
+	return hitAnything;
 }
 
 
