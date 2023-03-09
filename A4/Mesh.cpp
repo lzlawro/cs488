@@ -11,6 +11,12 @@
 bool Mesh::hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const {
 	if (!m_boundingCuboid.hit(ray, t_min, t_max, record)) return false;
 
+	#ifdef RENDER_BOUNDING_VOLUMES
+
+	return true;
+
+	#endif
+
 	// TODO: if the option to render the bounding box is on, then do it here
 
 	// If the ray hits the bounding volume, proceed to checking each individual triangle

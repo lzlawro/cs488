@@ -13,7 +13,7 @@
 // Use this #define to selectively compile your code to render the
 // bounding boxes around your mesh objects. Uncomment this option
 // to turn it on.
-//#define RENDER_BOUNDING_VOLUMES
+// #define RENDER_BOUNDING_VOLUMES
 
 struct Triangle
 {
@@ -26,8 +26,6 @@ struct Triangle
 		, v2( pv2 )
 		, v3( pv3 )
 	{}
-
-	bool hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const;
 };
 
 // A polygonal mesh.

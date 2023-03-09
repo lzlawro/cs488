@@ -11,6 +11,7 @@
 using namespace std;
 using namespace glm;
 
+// Useless now as hit detection methods for primitives have been defined
 float hitSphere(const vec3 &center, float radius, const Ray &ray) {
 	vec3 oc = ray.getOrigin() - center;
 
