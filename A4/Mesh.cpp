@@ -8,11 +8,55 @@
 // #include "cs488-framework/ObjFileDecoder.hpp"
 #include "Mesh.hpp"
 
-bool Triangle::hit(const Ray &ray, float tmin, float tmax, HitRecord &record) const {
-	return false;
-}
+bool Mesh::hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const {
+	if (!m_boundingCuboid.hit(ray, t_min, t_max, record)) return false;
 
-bool Mesh::hit(const Ray &ray, float tmin, float tmax, HitRecord &record) const {
+	// TODO: if the option to render the bounding box is on, then do it here
+
+	// If the ray hits the bounding volume, proceed to checking each individual triangle
+	for (const Triangle &triangle: m_faces) {
+		// Cramer's rule
+		glm::vec3 a = m_vertices[triangle.v1];
+		glm::vec3 b = m_vertices[triangle.v2];
+		glm::vec3 c = m_vertices[triangle.v3];
+
+		glm::vec3 col1 = glm::vec3(a - b);
+		glm::vec3 col2 = glm::vec3(a - c);
+		glm::vec3 col3 = ray.getDirection();
+		glm::vec3 colRhs = glm::vec3(a - ray.getOrigin());
+
+		glm::mat3x3 A = glm::mat3(col1, col2, col3);
+
+		// glm::mat3 A = glm::transpose(glm::mat3(
+		// 	a.x-b.x, a.x-c.x, ray.getDirection().x,
+		// 	a.y-b.y, a.y-c.y, ray.getDirection().y,
+		// 	a.z-b.z, a.z-c.z, ray.getDirection().z
+		// ));
+
+		// std::cout << glm::to_string(A) << std::endl;
+
+		// std::cout << glm::to_string(glm::mat3(col1, col2, col3)) << std::endl;
+
+		auto detOfA =  glm::determinant(A);
+
+		auto t = glm::determinant(glm::mat3(col1, col2, colRhs)) / detOfA;
+		if (t < t_min || t > t_max) continue; // continue is needed here instead of returning false
+
+		auto gamma = glm::determinant(glm::mat3(col1, colRhs, col3)) / detOfA;
+		if (gamma < 0 || gamma > 1) continue;
+
+		auto beta = glm::determinant(glm::mat3(colRhs, col2, col3)) / detOfA;
+		if (beta < 0 || beta > 1 - gamma) continue;
+
+		// Hit case
+		record.t = t;
+		record.p = ray.pointAtParameter(t);
+		record.normal = glm::cross(col1, col2);
+		return true;
+	}
+
+	// It is possible that the ray intersects the bounding box but still doesn't hit
+	// any triangle. Or is it?
 	return false;
 }
 

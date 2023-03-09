@@ -27,14 +27,14 @@ struct Triangle
 		, v3( pv3 )
 	{}
 
-	bool hit(const Ray &ray, float tmin, float tmax, HitRecord &record) const;
+	bool hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const;
 };
 
 // A polygonal mesh.
 class Mesh : public Primitive {
 public:
   Mesh( const std::string& fname );
-  bool hit(const Ray &ray, float tmin, float tmax, HitRecord &record) const;  
+  bool hit(const Ray &ray, float t_min, float t_max, HitRecord &record) const;  
 private:
 	std::vector<glm::vec3> m_vertices;
 	std::vector<Triangle> m_faces;
