@@ -46,6 +46,30 @@ private:
   double m_radius;
 };
 
+class NonhierCuboid: public Primitive {
+public:
+  NonhierCuboid()
+  : m_pos(glm::vec3(0.0f)), m_dimensions(glm::vec3(0.0f))
+  {
+
+  }
+
+  NonhierCuboid(const glm::vec3& pos, const glm::vec3& dimensions)
+    : m_pos(pos), m_dimensions(dimensions)
+  {
+  }
+
+  void setPos(glm::vec3 pos) { m_pos = pos; }
+  void setDimensions(glm::vec3 dimensions) { m_dimensions = dimensions; }
+  
+  virtual ~NonhierCuboid();
+  bool hit(const Ray &ray, float tmin, float tmax, HitRecord &record) const;
+
+private:
+  glm::vec3 m_pos;
+  glm::vec3 m_dimensions;
+};
+
 class NonhierBox : public Primitive {
 public:
   NonhierBox(const glm::vec3& pos, double size)

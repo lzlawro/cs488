@@ -1,12 +1,12 @@
 // Termm--Winter 2023
 
 #include <glm/ext.hpp>
-#include <bits/stdc++.h>
 
 #include "A4.hpp"
 #include "Primitive.hpp"
 #include "polyroots.hpp"
 #include "PhongMaterial.hpp"
+#include <array>
 
 using namespace std;
 using namespace glm;
@@ -49,7 +49,7 @@ vec3 rayColor(
 
 	bool hitAnything = false;
 
-	double closestSoFar = MAXFLOAT;
+	double closestSoFar = std::numeric_limits<float>::max();
 
 	for (const SceneNode *node: root->children) {
 		if (node->m_nodeType != NodeType::GeometryNode)
@@ -57,7 +57,7 @@ vec3 rayColor(
 
 		const GeometryNode *geometryNode = static_cast<const GeometryNode *>(node);
 
-		if (geometryNode->m_primitive->hit(ray, 0.0, closestSoFar, tempRecord)) {
+		if (geometryNode->m_primitive->hit(ray, 0.0001, closestSoFar, tempRecord)) {
 			hitAnything = true;
 			tempRecord.material = geometryNode->m_material;
 			closestSoFar = tempRecord.t;
@@ -103,9 +103,7 @@ vec3 rayColor(
 	// Background
 	vec3 unitDirection = normalize(ray.getDirection());
 	float t = (normalize(unitDirection).y + 0.5);
-	// return (t) * vec3(0.0, 0.0, 0.0) + (1.0 - 2.0 * t) * vec3(0.0, 0.0, 0.0) + (1.0 - t) * vec3(0.0, 0.0, 1.0);
 	return (1.0-t) * vec3(0.2, 0.2, 1.0) + (t) * vec3(0.0, 0.0, 0.0);
-	// return (1.0-t) * vec3(0.5, 0.5, 0.1) + (t) * vec3(0.3, 0.3, 1.0);
 
 	// // Background
 	// vec3 unitDirection = normalize(ray.getDirection());

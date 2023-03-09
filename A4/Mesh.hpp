@@ -26,6 +26,8 @@ struct Triangle
 		, v2( pv2 )
 		, v3( pv3 )
 	{}
+
+	bool hit(const Ray &ray, float tmin, float tmax, HitRecord &record) const;
 };
 
 // A polygonal mesh.
@@ -36,6 +38,7 @@ public:
 private:
 	std::vector<glm::vec3> m_vertices;
 	std::vector<Triangle> m_faces;
+	NonhierCuboid m_boundingCuboid;
 
     friend std::ostream& operator<<(std::ostream& out, const Mesh& mesh);
 };
