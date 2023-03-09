@@ -50,23 +50,30 @@ bool GeometryNode::hit(const Ray &ray, float t_min, float t_max, HitRecord &reco
 	);
 
 	HitRecord tempRecord;
-	tempRecord.material = nullptr;
 	bool hitAnything = false;
 	double closestSoFar = t_max;
 
-	for (const SceneNode *child: children) {
-		if (child->hit(transformedRay, t_min, closestSoFar, tempRecord)) {
-			hitAnything = true;
-			closestSoFar = tempRecord.t;
-			record = tempRecord;
-		}
-	}
-
-	if (m_primitive->hit(transformedRay, t_min, closestSoFar, tempRecord)) {
-		if (tempRecord.material == nullptr) tempRecord.material = m_material;
+	if (m_primitive->hit(transformedRay, t_min, t_max, tempRecord)) {
+		tempRecord.material = m_material;
 		hitAnything = true;
 		closestSoFar = tempRecord.t;
 		record = tempRecord;
+	}
+
+	// for (const SceneNode *child: children) {
+	// 	if (child->hit(transformedRay, t_min, closestSoFar, tempRecord)) {
+	// 		hitAnything = true;
+	// 		closestSoFar = tempRecord.t;
+	// 		record = tempRecord;
+	// 	}
+	// }
+
+	HitRecord tempRecord_;
+
+	if (SceneNode::hit(ray, t_min, closestSoFar, tempRecord_)) {
+		hitAnything = true;
+		record = tempRecord_;
+		closestSoFar = tempRecord_.t;
 	}
 
 	if (hitAnything) {
