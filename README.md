@@ -1,4 +1,4 @@
-# CS488 Fall 2015 Project Code
+# CS488 Fall 2023 Project Code
 
 ## Dependencies
 * OpenGL 3.2+
