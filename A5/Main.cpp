@@ -1,1 +1,23 @@
 // Term-Winter 2023
+
+#include "A5.hpp"
+
+int main(int argc, char **argv)
+{
+    // CS488Window::launch(argc, argv, new A5(), 1024, 768, "W23 Assignment 5");
+
+    if (argc > 1) {
+        std::string luaSceneFile(argv[1]);
+		std::string title("W21 Assignment 3 - [");
+		title += luaSceneFile;
+		title += "]";
+
+		CS488Window::launch(argc, argv, new A5(luaSceneFile), 1024, 768, title);
+    } else {
+        std::cout << "Must supply Lua file as First argument to program.\n";
+        std::cout << "For example:\n";
+        std::cout << "./A3 Assets/simpleScene.lua\n";
+    }
+
+    return 0;
+}
