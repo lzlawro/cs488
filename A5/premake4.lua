@@ -18,7 +18,8 @@ if os.get() == "macosx" then
     linkLibs = {
         "cs488-framework",
         "imgui",
-        "glfw3"
+        "glfw3",
+        "lua"
     }
 end
 
@@ -27,6 +28,7 @@ if os.get() == "linux" then
         "cs488-framework",
         "imgui",
         "glfw3",
+        "lua",
         "GL",
         "Xinerama",
         "Xcursor",
@@ -45,12 +47,12 @@ if os.get() == "macosx" then
     linkOptionList = { "-framework IOKit", "-framework Cocoa", "-framework CoreVideo", "-framework OpenGL" }
 end
 
-buildOptions = {"-std=c++11"}
+buildOptions = {"-std=c++17"}
 
 solution "CS488-Projects"
     configurations { "Debug", "Release" }
 
-    project "A1"
+    project "A5"
         kind "ConsoleApp"
         language "C++"
         location "build"
