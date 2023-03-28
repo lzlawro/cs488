@@ -12,6 +12,8 @@
 
 #include "SceneNode.hpp"
 
+#include <stack>
+
 struct LightSource {
 	glm::vec3 position;
 	glm::vec3 rgbIntensity;
@@ -48,6 +50,14 @@ protected:
 
 	void initPerspectiveMatrix();
 	void uploadCommonSceneUniforms();
+
+	void renderSceneNode(
+		const SceneNode *node, 
+		glm::mat4 view, 
+		glm::mat4 model,
+		std::stack<glm::mat4> &st
+	);
+
 	void renderSceneGraph(const SceneNode &node);
 
     glm::mat4 m_perspective;
@@ -62,6 +72,9 @@ protected:
 	GLint m_positionAttribLocation;
 	GLint m_normalAttribLocation;
 	ShaderProgram m_shader;
+
+	glm::mat4 m_model_translation;
+	glm::mat4 m_model_rotation;
 
     // BatchInfoMap is an associative container that maps a unique MeshId to a BatchInfo
 	// object. Each BatchInfo object contains an index offset and the number of indices

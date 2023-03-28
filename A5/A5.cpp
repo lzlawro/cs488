@@ -25,7 +25,9 @@ A5::A5(const std::string &luaSceneFile)
 	  m_normalAttribLocation(0),
 	  m_vao_meshData(0),
 	  m_vbo_vertexPositions(0),
-	  m_vbo_vertexNormals(0)
+	  m_vbo_vertexNormals(0),
+	  m_model_translation(glm::mat4(1.0f)),
+	  m_model_rotation(glm::mat4(1.0f))
 {
     
 }
@@ -58,8 +60,8 @@ void A5::processLuaSceneFile(const std::string &filename) {
 void A5::createShaderProgram()
 {
     m_shader.generateProgramObject();
-	m_shader.attachVertexShader( getAssetFilePath("VertexShader.vs").c_str() );
-	m_shader.attachFragmentShader( getAssetFilePath("FragmentShader.fs").c_str() );
+	m_shader.attachVertexShader( getAssetFilePath("Vert.vs").c_str() );
+	m_shader.attachFragmentShader( getAssetFilePath("Frag.fs").c_str() );
 	m_shader.link();
 }
 
@@ -157,7 +159,7 @@ void A5::initViewMatrix() {
 void A5::initLightSources() {
 	// World-space position
 	m_light.position = glm::vec3(10.0f, 10.0f, 10.0f);
-	m_light.rgbIntensity = glm::vec3(0.0f); // light
+	m_light.rgbIntensity = glm::vec3(0.75f); // light
 }
 
 //----------------------------------------------------------------------------------------
@@ -166,16 +168,16 @@ void A5::uploadCommonSceneUniforms() {
 	{
 		//-- Set Perpsective matrix uniform for the scene:
 		GLint location = m_shader.getUniformLocation("Perspective");
-		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(m_perspective));
+		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perspective));
 		CHECK_GL_ERRORS;
 
 
 		//-- Set LightSource uniform for the scene:
 		{
 			location = m_shader.getUniformLocation("light.position");
-			glUniform3fv(location, 1, glm::value_ptr(m_light.position));
+			glUniform3fv(location, 1, value_ptr(m_light.position));
 			location = m_shader.getUniformLocation("light.rgbIntensity");
-			glUniform3fv(location, 1, glm::value_ptr(m_light.rgbIntensity));
+			glUniform3fv(location, 1, value_ptr(m_light.rgbIntensity));
 			CHECK_GL_ERRORS;
 		}
 
@@ -183,7 +185,7 @@ void A5::uploadCommonSceneUniforms() {
 		{
 			location = m_shader.getUniformLocation("ambientIntensity");
 			glm::vec3 ambientIntensity(0.25f);
-			glUniform3fv(location, 1, glm::value_ptr(ambientIntensity));
+			glUniform3fv(location, 1, value_ptr(ambientIntensity));
 			CHECK_GL_ERRORS;
 		}
 	}
@@ -197,7 +199,7 @@ void A5::uploadCommonSceneUniforms() {
 void A5::init() 
 {
     // Set the background colour.
-    glClearColor(0.85, 0.85, 0.85, 1.0);
+    glClearColor(0.4, 0.4, 0.4, 1.0);
 
     createShaderProgram();
 
@@ -214,7 +216,8 @@ void A5::init()
 
     std::unique_ptr<MeshConsolidator> meshConsolidator (new MeshConsolidator {
         getAssetFilePath("cube.obj"),
-        getAssetFilePath("sphere.obj")
+        getAssetFilePath("sphere.obj"),
+		getAssetFilePath("plane.obj")
     });
 
     meshConsolidator->getBatchInfoMap(m_batchInfoMap);
@@ -287,29 +290,41 @@ void A5::guiLogic()
 static void updateShaderUniforms(
 		const ShaderProgram & shader,
 		const GeometryNode & node,
-		const glm::mat4 & viewMatrix
+		const glm::mat4 & viewMatrix,
+		const glm::mat4 & modelMatrix
 ) {
 
 	shader.enable();
 	{
 		//-- Set ModelView matrix:
 		GLint location = shader.getUniformLocation("ModelView");
-		glm::mat4 modelView = viewMatrix * node.trans;
-		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(modelView));
+		glm::mat4 modelView = viewMatrix * modelMatrix;
+		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
 		CHECK_GL_ERRORS;
 
 		//-- Set NormMatrix:
 		location = shader.getUniformLocation("NormalMatrix");
 		glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelView)));
-		glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+		glUniformMatrix3fv(location, 1, GL_FALSE, value_ptr(normalMatrix));
 		CHECK_GL_ERRORS;
 
 
 		//-- Set Material values:
-		location = shader.getUniformLocation("material.kd");
 		glm::vec3 kd = node.material.kd;
-		glUniform3fv(location, 1, glm::value_ptr(kd));
+		glm::vec3 ks = node.material.ks;
+		float shininess = node.material.shininess;
+
+		location = shader.getUniformLocation("material.kd");
+		glUniform3fv(location, 1, value_ptr(kd));
 		CHECK_GL_ERRORS;
+
+		// location = shader.getUniformLocation("material.ks");
+		// glUniform3fv(location, 1, value_ptr(ks));
+		// CHECK_GL_ERRORS;
+
+		// location = shader.getUniformLocation("material.shininess");
+		// glUniform1f(location, shininess);
+		// CHECK_GL_ERRORS;
 	}
 	shader.disable();
 
@@ -324,6 +339,46 @@ void A5::draw()
     glEnable( GL_DEPTH_TEST );
 	renderSceneGraph(*m_rootNode);
     glDisable( GL_DEPTH_TEST );
+}
+
+//----------------------------------------------------------------------------------------
+void A5::renderSceneNode(
+		const SceneNode *node, 
+		glm::mat4 view, 
+		glm::mat4 model,
+		std::stack<glm::mat4> &st
+	) {
+	
+	if (node == nullptr) return;
+
+	glm::mat4 M_push = node->get_transform();
+	st.push(M_push);
+	model = model * M_push;
+
+	if (node->m_nodeType == NodeType::GeometryNode) {
+		const GeometryNode *geometryNode = static_cast<const GeometryNode *>(node);
+
+		updateShaderUniforms(
+			m_shader, 
+			*geometryNode, 
+			view, 
+			model
+			);
+
+		BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
+
+		m_shader.enable();
+		glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
+		m_shader.disable();
+	}
+
+	for (const SceneNode *child: node->children) {
+		renderSceneNode(child, view, model, st);
+	}
+
+	glm::mat4 M_pop = st.top();
+	st.pop();
+	model = model * glm::inverse(M_pop);
 }
 
 //----------------------------------------------------------------------------------------
@@ -345,24 +400,38 @@ void A5::renderSceneGraph(const SceneNode & root) {
 	// could put a set of mutually recursive functions in this class, which
 	// walk down the tree from nodes of different types.
 
-	for (const SceneNode * node : root.children) {
+	// for (const SceneNode * node : root.children) {
 
-		if (node->m_nodeType != NodeType::GeometryNode)
-			continue;
+	// 	if (node->m_nodeType != NodeType::GeometryNode)
+	// 		continue;
 
-		const GeometryNode * geometryNode = static_cast<const GeometryNode *>(node);
+	// 	const GeometryNode * geometryNode = static_cast<const GeometryNode *>(node);
 
-		updateShaderUniforms(m_shader, *geometryNode, m_view);
+	// 	updateShaderUniforms(m_shader, *geometryNode, m_view);
 
 
-		// Get the BatchInfo corresponding to the GeometryNode's unique MeshId.
-		BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
+	// 	// Get the BatchInfo corresponding to the GeometryNode's unique MeshId.
+	// 	BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
 
-		//-- Now render the mesh:
-		m_shader.enable();
-		glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
-		m_shader.disable();
-	}
+	// 	//-- Now render the mesh:
+	// 	m_shader.enable();
+	// 	glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
+	// 	m_shader.disable();
+	// }
+
+	// glBindVertexArray(0);
+	// CHECK_GL_ERRORS;
+
+	glm::mat4 rootModel = root.get_transform();
+
+	std::stack<glm::mat4> matStack;
+
+	renderSceneNode(
+		&root,
+		m_view,
+		m_model_translation * rootModel * m_model_rotation * glm::inverse(rootModel),
+		matStack
+	);
 
 	glBindVertexArray(0);
 	CHECK_GL_ERRORS;
@@ -443,6 +512,10 @@ bool A5::keyInputEvent(int key, int action, int mods)
 	if( action == GLFW_PRESS ) {
 		if( key == GLFW_KEY_M ) {
 			show_gui = !show_gui;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_Q) {
+			glfwSetWindowShouldClose(m_window, true);
 			eventHandled = true;
 		}
 	}

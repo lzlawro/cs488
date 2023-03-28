@@ -122,7 +122,6 @@ A3::A3(const std::string & luaSceneFile)
 	  current_mode(POSITION_ORIENTATION),
 	  m_model_translation(mat4(1.0f)),
 	  m_model_rotation(mat4(1.0f)),
-	  m_model_z_rotation(mat4(1.0f)),
 	  m_headJoint(nullptr),
 	  m_headNode(nullptr)
 {
@@ -725,7 +724,7 @@ void A3::renderSceneGraph(const SceneNode & root) {
 	renderSceneNode(
 		&root, 
 		m_view, 
-		m_model_z_rotation * m_model_translation * rootModel * m_model_rotation * glm::inverse(rootModel), 
+		m_model_translation * rootModel * m_model_rotation * glm::inverse(rootModel), 
 		matStack
 		);
 
