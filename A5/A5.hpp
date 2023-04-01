@@ -81,6 +81,10 @@ protected:
 	// required to render the mesh with identifier MeshId.
     BatchInfoMap m_batchInfoMap;
 
+    ShaderProgram m_sphere_shader;
+    ShaderProgram m_water_shader;
+    ShaderProgram m_pool_shader;
+
     std::string m_luaSceneFile;
 
     std::shared_ptr<SceneNode> m_rootNode;

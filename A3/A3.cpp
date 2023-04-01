@@ -142,7 +142,7 @@ A3::~A3()
 void A3::init()
 {
 	// Set the background colour.
-	glClearColor(0.4, 0.4, 0.4, 1.0);
+	glClearColor(0.0, 1.0, 0.0, 1.0);
 
 	createShaderProgram();
 
@@ -160,7 +160,8 @@ void A3::init()
 			getAssetFilePath("cube.obj"),
 			getAssetFilePath("sphere.obj"),
 			getAssetFilePath("pyramid.obj"),
-			getAssetFilePath("cylinder.obj")
+			getAssetFilePath("cylinder.obj"),
+			getAssetFilePath("plane.obj")
 	});
 
 
@@ -1088,7 +1089,7 @@ bool A3::mouseButtonInputEvent (
 			uploadCommonSceneUniforms();
 			glClearColor(1.0, 1.0, 1.0, 1.0);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			glClearColor(0.4, 0.4, 0.4, 1.0);
+			glClearColor(0.0, 1.0, 0.0, 1.0);
 
 			draw();
 

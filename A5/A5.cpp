@@ -60,8 +60,8 @@ void A5::processLuaSceneFile(const std::string &filename) {
 void A5::createShaderProgram()
 {
     m_shader.generateProgramObject();
-	m_shader.attachVertexShader( getAssetFilePath("Vert.vs").c_str() );
-	m_shader.attachFragmentShader( getAssetFilePath("Frag.fs").c_str() );
+	m_shader.attachVertexShader( getAssetFilePath("VertexShader.vs").c_str() );
+	m_shader.attachFragmentShader( getAssetFilePath("FragmentShader.fs").c_str() );
 	m_shader.link();
 }
 
