@@ -11,6 +11,7 @@
 #include "cs488-framework/MeshConsolidator.hpp"
 
 #include "SceneNode.hpp"
+#include "GeometryNode.hpp"
 
 #include <stack>
 
@@ -42,14 +43,27 @@ protected:
     //-- One time initialization methods:
 	void processLuaSceneFile(const std::string & filename);
 	void createShaderProgram();
+    void createBallShader();
+    void createWaterShader();
+    void createPoolShader();
 	void enableVertexShaderInputSlots();
 	void uploadVertexDataToVbos(const MeshConsolidator & meshConsolidator);
 	void mapVboDataToVertexShaderInputLocations();
 	void initViewMatrix();
 	void initLightSources();
-
 	void initPerspectiveMatrix();
 	void uploadCommonSceneUniforms();
+
+	void updateShaderUniforms(
+		const GeometryNode & node,
+		const glm::mat4 & viewMatrix,
+		const glm::mat4 & modelMatrix
+	);
+
+	void updateBallShaderUniforms(
+		const glm::mat4 & viewMatrix,
+		const glm::mat4 & modelMatrix
+	);
 
 	void renderSceneNode(
 		const SceneNode *node, 
@@ -81,9 +95,12 @@ protected:
 	// required to render the mesh with identifier MeshId.
     BatchInfoMap m_batchInfoMap;
 
-    ShaderProgram m_sphere_shader;
+    ShaderProgram m_ball_shader;
     ShaderProgram m_water_shader;
     ShaderProgram m_pool_shader;
+
+	GLfloat m_ball_radius;
+	glm::vec3 m_ball_center;
 
     std::string m_luaSceneFile;
 

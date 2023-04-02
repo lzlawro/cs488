@@ -6,7 +6,6 @@
 #include "cs488-framework/GlErrorCheck.hpp"
 #include "cs488-framework/MathUtils.hpp"
 
-#include "GeometryNode.hpp"
 #include "JointNode.hpp"
 
 #include <imgui/imgui.h>
@@ -27,7 +26,9 @@ A5::A5(const std::string &luaSceneFile)
 	  m_vbo_vertexPositions(0),
 	  m_vbo_vertexNormals(0),
 	  m_model_translation(glm::mat4(1.0f)),
-	  m_model_rotation(glm::mat4(1.0f))
+	  m_model_rotation(glm::mat4(1.0f)),
+	  m_ball_radius(0.3f),
+	  m_ball_center(glm::vec3(0.1, 0.5, -5.4))
 {
     
 }
@@ -66,6 +67,27 @@ void A5::createShaderProgram()
 }
 
 //----------------------------------------------------------------------------------------
+void A5::createBallShader()
+{
+	m_ball_shader.generateProgramObject();
+	m_ball_shader.attachVertexShader(getAssetFilePath("BallVertexShader.vs").c_str());
+	m_ball_shader.attachFragmentShader(getAssetFilePath("BallFragmentShader.fs").c_str());
+	m_ball_shader.link();
+}
+
+//----------------------------------------------------------------------------------------
+void A5::createWaterShader()
+{
+
+}
+
+//----------------------------------------------------------------------------------------
+void A5::createPoolShader()
+{
+
+}
+
+//----------------------------------------------------------------------------------------
 void A5::enableVertexShaderInputSlots()
 {
     //-- Enable input slots for m_vao_meshData:
@@ -79,6 +101,13 @@ void A5::enableVertexShaderInputSlots()
 		// Enable the vertex shader attribute location for "normal" when rendering.
 		m_normalAttribLocation = m_shader.getAttribLocation("normal");
 		glEnableVertexAttribArray(m_normalAttribLocation);
+
+		CHECK_GL_ERRORS;
+	}
+
+	{
+		m_positionAttribLocation = m_ball_shader.getAttribLocation("position");
+		glEnableVertexAttribArray(m_positionAttribLocation);
 
 		CHECK_GL_ERRORS;
 	}
@@ -164,10 +193,12 @@ void A5::initLightSources() {
 
 //----------------------------------------------------------------------------------------
 void A5::uploadCommonSceneUniforms() {
+	GLint location;
+
 	m_shader.enable();
 	{
 		//-- Set Perpsective matrix uniform for the scene:
-		GLint location = m_shader.getUniformLocation("Perspective");
+		location = m_shader.getUniformLocation("Perspective");
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perspective));
 		CHECK_GL_ERRORS;
 
@@ -190,6 +221,14 @@ void A5::uploadCommonSceneUniforms() {
 		}
 	}
 	m_shader.disable();
+
+	m_ball_shader.enable();
+	{
+		location = m_ball_shader.getUniformLocation("Perspective");
+		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perspective));
+		CHECK_GL_ERRORS;	
+	}
+	m_ball_shader.disable();
 }
 
 //----------------------------------------------------------------------------------------
@@ -202,6 +241,10 @@ void A5::init()
     glClearColor(0.4, 0.4, 0.4, 1.0);
 
     createShaderProgram();
+
+	createBallShader();
+	createPoolShader();
+	createWaterShader();
 
     glGenVertexArrays(1, &m_vao_meshData);
 
@@ -287,23 +330,21 @@ void A5::guiLogic()
 
 //----------------------------------------------------------------------------------------
 // Update mesh specific shader uniforms:
-static void updateShaderUniforms(
-		const ShaderProgram & shader,
+void A5::updateShaderUniforms(
 		const GeometryNode & node,
 		const glm::mat4 & viewMatrix,
 		const glm::mat4 & modelMatrix
-) {
-
-	shader.enable();
+		) {
+	m_shader.enable();
 	{
 		//-- Set ModelView matrix:
-		GLint location = shader.getUniformLocation("ModelView");
+		GLint location = m_shader.getUniformLocation("ModelView");
 		glm::mat4 modelView = viewMatrix * modelMatrix;
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
 		CHECK_GL_ERRORS;
 
 		//-- Set NormMatrix:
-		location = shader.getUniformLocation("NormalMatrix");
+		location = m_shader.getUniformLocation("NormalMatrix");
 		glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelView)));
 		glUniformMatrix3fv(location, 1, GL_FALSE, value_ptr(normalMatrix));
 		CHECK_GL_ERRORS;
@@ -314,20 +355,35 @@ static void updateShaderUniforms(
 		glm::vec3 ks = node.material.ks;
 		float shininess = node.material.shininess;
 
-		location = shader.getUniformLocation("material.kd");
+		location = m_shader.getUniformLocation("material.kd");
 		glUniform3fv(location, 1, value_ptr(kd));
 		CHECK_GL_ERRORS;
-
-		// location = shader.getUniformLocation("material.ks");
-		// glUniform3fv(location, 1, value_ptr(ks));
-		// CHECK_GL_ERRORS;
-
-		// location = shader.getUniformLocation("material.shininess");
-		// glUniform1f(location, shininess);
-		// CHECK_GL_ERRORS;
 	}
-	shader.disable();
+	m_shader.disable();
+}
 
+//----------------------------------------------------------------------------------------
+void A5::updateBallShaderUniforms(
+	const glm::mat4 & viewMatrix,
+	const glm::mat4 & modelMatrix
+) {
+	m_ball_shader.enable();
+	{
+		//-- Set ModelView matrix:
+		GLint location = m_ball_shader.getUniformLocation("ModelView");
+		glm::mat4 modelView = viewMatrix * modelMatrix;
+		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
+		CHECK_GL_ERRORS;
+
+		location = m_ball_shader.getUniformLocation("sphereCenter");
+		glUniform3fv(location, 1, value_ptr(m_ball_center));
+		CHECK_GL_ERRORS;
+
+		location = m_ball_shader.getUniformLocation("sphereRadius");
+		glUniform1f(location, m_ball_radius);
+		CHECK_GL_ERRORS;
+	}
+	m_ball_shader.disable();
 }
 
 //----------------------------------------------------------------------------------------
@@ -358,18 +414,29 @@ void A5::renderSceneNode(
 	if (node->m_nodeType == NodeType::GeometryNode) {
 		const GeometryNode *geometryNode = static_cast<const GeometryNode *>(node);
 
-		updateShaderUniforms(
-			m_shader, 
+		BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
+
+		if (node->m_name == "ball") {
+			updateBallShaderUniforms(
+				view,
+				model
+			);
+
+			m_ball_shader.enable();
+			glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
+			m_ball_shader.disable();
+		}
+		else {
+			updateShaderUniforms(
 			*geometryNode, 
 			view, 
 			model
 			);
 
-		BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
-
-		m_shader.enable();
-		glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
-		m_shader.disable();
+			m_shader.enable();
+			glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
+			m_shader.disable();
+		}
 	}
 
 	for (const SceneNode *child: node->children) {
