@@ -390,6 +390,12 @@ void A5::uploadCommonSceneUniforms() {
 		location = m_sphere_shader.getUniformLocation("Perspective");
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perspective));
 		CHECK_GL_ERRORS;
+
+		location = m_sphere_shader.getUniformLocation("light.position");
+				glUniform3fv(location, 1, value_ptr(m_light.position));
+				location = m_sphere_shader.getUniformLocation("light.rgbIntensity");
+				glUniform3fv(location, 1, value_ptr(m_light.rgbIntensity));
+				CHECK_GL_ERRORS;
 	}
 	m_sphere_shader.disable();
 
@@ -622,6 +628,30 @@ void A5::updateSphereShaderUniforms(
 		GLint location = m_sphere_shader.getUniformLocation("ModelView");
 		glm::mat4 modelView = viewMatrix * modelMatrix;
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
+		CHECK_GL_ERRORS;
+
+		//-- Set NormMatrix:
+		location = m_sphere_shader.getUniformLocation("NormalMatrix");
+		glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelView)));
+		glUniformMatrix3fv(location, 1, GL_FALSE, value_ptr(normalMatrix));
+		CHECK_GL_ERRORS;
+
+
+		//-- Set Material values:
+		if (m_sphereNode == nullptr) return;
+		glm::vec3 kd = ((GeometryNode *)m_sphereNode)->material.kd;
+		glm::vec3 ks = ((GeometryNode *)m_sphereNode)->material.kd;
+		float shininess = ((GeometryNode *)m_sphereNode)->material.shininess;
+
+		location = m_sphere_shader.getUniformLocation("material.kd");
+		glUniform3fv(location, 1, value_ptr(kd));
+		CHECK_GL_ERRORS;
+		location = m_sphere_shader.getUniformLocation("material.ks");
+		glUniform3fv(location, 1, value_ptr(ks));
+		CHECK_GL_ERRORS;
+
+		location = m_sphere_shader.getUniformLocation("material.shininess");
+		glUniform1f(location, shininess);
 		CHECK_GL_ERRORS;
 	}
 	m_sphere_shader.disable();

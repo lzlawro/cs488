@@ -1,13 +1,14 @@
 rootNode = gr.node('root')
 
-red = gr.material({1.0, 0.0, 0.0}, {0.1, 0.1, 0.1}, 10)
-darkRed = gr.material({0.1, 0.0, 0.0}, {0.1, 0.1, 0.1}, 10)
-blue = gr.material({0.0, 0.0, 1.0}, {0.1, 0.1, 0.1}, 10)
-green = gr.material({0.0, 1.0, 0.0}, {0.1, 0.1, 0.1}, 10)
-white = gr.material({1.0, 1.0, 1.0}, {0.1, 0.1, 0.1}, 10)
-yellow = gr.material({1.0, 1.0, 0.0}, {0.1, 0.1, 0.1}, 10)
-black = gr.material({0.0, 0.0, 0.0}, {0.1, 0.1, 0.1}, 10)
-white = gr.material({1.0, 1.0, 1.0}, {0.1, 0.1, 0.1}, 10)
+red = gr.material({1.0, 0.0, 0.0}, {0.1, 0.1, 0.1}, 2)
+darkRed = gr.material({0.1, 0.0, 0.0}, {0.1, 0.1, 0.1}, 2)
+blue = gr.material({0.0, 0.0, 1.0}, {0.1, 0.1, 0.1}, 2)
+green = gr.material({0.0, 1.0, 0.0}, {0.1, 0.1, 0.1}, 2)
+white = gr.material({1.0, 1.0, 1.0}, {0.1, 0.1, 0.1}, 2)
+yellow = gr.material({1.0, 1.0, 0.0}, {0.1, 0.1, 0.1}, 2)
+black = gr.material({0.0, 0.0, 0.0}, {0.1, 0.1, 0.1}, 2)
+white = gr.material({1.0, 1.0, 1.0}, {0.1, 0.1, 0.1}, 2)
+orange = gr.material({1.0, 0.7, 0.3}, {0.1, 0.1, 0.1}, 2)
 
 rootNode:translate(0.0, 0.0, -7.5)
 
@@ -33,7 +34,7 @@ rootNode:add_child(planeMesh)
 sphereMesh = gr.mesh('sphere', 'sphere')
 sphereMesh:scale(0.75, 0.75, 0.75)
 sphereMesh:translate(0.2, 1.5, 0.2)
-sphereMesh:set_material(white)
+sphereMesh:set_material(orange)
 rootNode:add_child(sphereMesh)
 
 return rootNode
