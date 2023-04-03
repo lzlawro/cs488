@@ -70,6 +70,11 @@ protected:
 		const glm::mat4 & modelMatrix
 		);
 
+	void updateWaterShaderUniforms(
+		const glm::mat4 & viewMatrix,
+		const glm::mat4 & modelMatrix
+		);
+
 	void renderSceneNode(
 		const SceneNode *node, 
 		glm::mat4 view, 
