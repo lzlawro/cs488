@@ -217,15 +217,18 @@ void A5::initPoolTexture() {
 
 	// Here the PNG is loaded in "image". All the rest of the code is SDL and OpenGL stuff
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, &image[0]);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &image[0]);
 	glGenerateMipmap(GL_TEXTURE_2D);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
+	// std::cout << width << ", " << height << std::endl;
+	// std::cout << image.size() << std::endl;
+
 	m_pool_shader.enable();
 	{
 		GLint location = m_pool_shader.getUniformLocation("tiles");
-		glUniform1i(location, 0);
+		glUniform1i(location, m_pool_texture);
 		// std::cout << m_pool_texture << std::endl;
 		CHECK_GL_ERRORS;
 	}
