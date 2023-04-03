@@ -65,6 +65,11 @@ protected:
 		const glm::mat4 & modelMatrix
 	);
 
+	void updatePoolShaderUniforms(
+		const glm::mat4 & viewMatrix,
+		const glm::mat4 & modelMatrix
+		);
+
 	void renderSceneNode(
 		const SceneNode *node, 
 		glm::mat4 view, 

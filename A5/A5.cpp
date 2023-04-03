@@ -84,7 +84,10 @@ void A5::createWaterShader()
 //----------------------------------------------------------------------------------------
 void A5::createPoolShader()
 {
-
+	m_pool_shader.generateProgramObject();
+	m_pool_shader.attachVertexShader(getAssetFilePath("PoolVertexShader.vs").c_str());
+	m_pool_shader.attachFragmentShader(getAssetFilePath("PoolFragmentShader.fs").c_str());
+	m_pool_shader.link();
 }
 
 //----------------------------------------------------------------------------------------
@@ -101,13 +104,6 @@ void A5::enableVertexShaderInputSlots()
 		// Enable the vertex shader attribute location for "normal" when rendering.
 		m_normalAttribLocation = m_shader.getAttribLocation("normal");
 		glEnableVertexAttribArray(m_normalAttribLocation);
-
-		CHECK_GL_ERRORS;
-	}
-
-	{
-		m_positionAttribLocation = m_ball_shader.getAttribLocation("position");
-		glEnableVertexAttribArray(m_positionAttribLocation);
 
 		CHECK_GL_ERRORS;
 	}
@@ -229,6 +225,14 @@ void A5::uploadCommonSceneUniforms() {
 		CHECK_GL_ERRORS;	
 	}
 	m_ball_shader.disable();
+
+	m_pool_shader.enable();
+	{
+		location = m_pool_shader.getUniformLocation("Perspective");
+		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perspective));
+		CHECK_GL_ERRORS;	
+	}
+	m_pool_shader.disable();
 }
 
 //----------------------------------------------------------------------------------------
@@ -375,15 +379,39 @@ void A5::updateBallShaderUniforms(
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
 		CHECK_GL_ERRORS;
 
-		location = m_ball_shader.getUniformLocation("sphereCenter");
-		glUniform3fv(location, 1, value_ptr(m_ball_center));
-		CHECK_GL_ERRORS;
+		// location = m_ball_shader.getUniformLocation("sphereCenter");
+		// glUniform3fv(location, 1, value_ptr(m_ball_center));
+		// CHECK_GL_ERRORS;
 
-		location = m_ball_shader.getUniformLocation("sphereRadius");
-		glUniform1f(location, m_ball_radius);
-		CHECK_GL_ERRORS;
+		// location = m_ball_shader.getUniformLocation("sphereRadius");
+		// glUniform1f(location, m_ball_radius);
+		// CHECK_GL_ERRORS;
 	}
 	m_ball_shader.disable();
+}
+
+//----------------------------------------------------------------------------------------
+void A5::updatePoolShaderUniforms(
+	const glm::mat4 & viewMatrix,
+	const glm::mat4 & modelMatrix
+) {
+	m_pool_shader.enable();
+	{
+		//-- Set ModelView matrix:
+		GLint location = m_pool_shader.getUniformLocation("ModelView");
+		glm::mat4 modelView = viewMatrix * modelMatrix;
+		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
+		CHECK_GL_ERRORS;
+
+		// location = m_ball_shader.getUniformLocation("sphereCenter");
+		// glUniform3fv(location, 1, value_ptr(m_ball_center));
+		// CHECK_GL_ERRORS;
+
+		// location = m_ball_shader.getUniformLocation("sphereRadius");
+		// glUniform1f(location, m_ball_radius);
+		// CHECK_GL_ERRORS;
+	}
+	m_pool_shader.disable();
 }
 
 //----------------------------------------------------------------------------------------
@@ -425,12 +453,21 @@ void A5::renderSceneNode(
 			m_ball_shader.enable();
 			glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
 			m_ball_shader.disable();
-		}
-		else {
-			updateShaderUniforms(
-			*geometryNode, 
-			view, 
-			model
+		} else if (node->m_name == "pool") {
+			updatePoolShaderUniforms(
+				view,
+				model
+			);
+			glEnable(GL_CULL_FACE);
+			glCullFace(GL_FRONT);
+			m_pool_shader.enable();
+			glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
+			m_pool_shader.disable();
+			glDisable(GL_CULL_FACE);
+		} else {
+			updatePoolShaderUniforms(
+				view,
+				model
 			);
 
 			m_shader.enable();
