@@ -53,6 +53,7 @@ protected:
 	void initLightSources();
 	void initPerspectiveMatrix();
 	void uploadCommonSceneUniforms();
+	bool isSphereInWater();
 
 	void initPoolTexture();
 
@@ -134,6 +135,7 @@ protected:
 	Mode current_mode;
 
 	bool do_physics;
+	bool sphere_in_water;
 
 	float m_sphere_velocityY;
 

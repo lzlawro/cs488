@@ -2,6 +2,7 @@
 
 #include "A5.hpp"
 #include "scene_lua.hpp"
+#include <X11/Xlib.h>
 
 #include "cs488-framework/GlErrorCheck.hpp"
 #include "cs488-framework/MathUtils.hpp"
@@ -18,6 +19,8 @@
 #include "../Trackball_Example/trackball.h"
 
 #include <lodepng/lodepng.h>
+
+#include <sys/wait.h>
 
 #include <queue>
 #include <cstdlib>
@@ -49,12 +52,13 @@ A5::A5(const std::string &luaSceneFile)
 	  m_vbo_vertexNormals(0),
 	  m_model_translation(glm::mat4(1.0f)),
 	  m_model_rotation(glm::mat4(1.0f)),
-	  m_sphere_center(glm::vec3(0.2, 0.75, 0.2)),
-	  m_sphere_radius(0.5f),
+	  m_sphere_center(glm::vec3(0.2, 1.5, 0.2)),
+	  m_sphere_radius(0.75f),
 	  m_sphere_velocityY(0.0f),
 	  m_sphereNode(nullptr),
 	  m_initialSphereTrans(glm::mat4(1.0f)),
-	  do_physics(false)
+	  do_physics(false),
+	  sphere_in_water(false)
 {
     
 }
@@ -77,8 +81,8 @@ void A5::reset()
 	// m_sphereNode->translate(glm::vec3(0.2, 0.75, 0.2));
 	m_sphereNode->set_transform(m_initialSphereTrans);
 	// std::cout << initialSphereTrans << std::endl;
-	m_sphere_center = (glm::vec3(0.2, 0.75, 0.2));
-	m_sphere_radius = (0.5f);
+	m_sphere_center = (glm::vec3(0.2, 1.5, 0.2));
+	m_sphere_radius = (0.75f);
 	
 	do_physics = false;
 }
@@ -226,25 +230,44 @@ void A5::uploadVertexDataToVbos(
 
 //----------------------------------------------------------------------------------------
 static void playWaterSound() {
+
+	char *args[4];
+
+	std::string canberra = "canberra-gtk-play";
+	std::string dash_f = "-f";
+	std::string file_path;
+
+	srand(time(0));
+	int num = rand() % 4;
+	switch (num) {
+		case 0:
+			file_path = "Assets/Splash-2CloseDistance.ogg";
+			// std::system("canberra-gtk-play -f Assets/Splash-2CloseDistance.ogg");
+			break;
+		case 1:
+			file_path = "Assets/Splash-4CloseDistance.ogg";
+			// std::system("canberra-gtk-play -f Assets/Splash-4CloseDistance.ogg");
+			break;
+		case 2:
+			file_path = "Assets/Splash-6CloseDistance.ogg";
+			// std::system("canberra-gtk-play -f Assets/Splash-6CloseDistance.ogg");
+			break;
+		case 3:
+			file_path = "Assets/Splash-7CloseDistance.ogg";
+			// std::system("canberra-gtk-play -f Assets/Splash-7CloseDistance.ogg");
+			break;
+	}
+
+	args[0] = (char *)canberra.c_str();
+	args[1] = (char *)dash_f.c_str();
+	args[2] = (char *)file_path.c_str();
+	args[3] = NULL;
+
 	pid_t pid = fork();
 	if (pid == 0) {
-		srand(time(0));
-		int num = rand() % 4;
-		switch (num) {
-			case 0:
-				std::system("canberra-gtk-play -f Assets/Splash-2CloseDistance.ogg");
-				break;
-			case 1:
-				std::system("canberra-gtk-play -f Assets/Splash-4CloseDistance.ogg");
-				break;
-			case 2:
-				std::system("canberra-gtk-play -f Assets/Splash-6CloseDistance.ogg");
-				break;
-			case 3:
-				std::system("canberra-gtk-play -f Assets/Splash-7CloseDistance.ogg");
-				break;
-		}
-		exit(0);
+		execvp(args[0], args);
+	} else {
+		return;
 	}
 }
 
@@ -366,7 +389,7 @@ void A5::uploadCommonSceneUniforms() {
 	{
 		location = m_sphere_shader.getUniformLocation("Perspective");
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perspective));
-		CHECK_GL_ERRORS;	
+		CHECK_GL_ERRORS;
 	}
 	m_sphere_shader.disable();
 
@@ -398,7 +421,6 @@ void A5::uploadCommonSceneUniforms() {
  */
 void A5::init() 
 {
-
     // Set the background colour.
     glClearColor(0.4, 0.4, 0.4, 1.0);
 
@@ -465,6 +487,12 @@ void A5::appLogic()
 	if (do_physics) {
 		updateSpherePosition();
 	}
+
+	bool res = isSphereInWater();
+	if (res != sphere_in_water) {
+		sphere_in_water = !sphere_in_water;
+		playWaterSound();
+	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -507,9 +535,9 @@ void A5::guiLogic()
 
 	ImGui::RadioButton("Produce Ripples         (I)", (int*)&current_mode, PRODUCE_RIPPLES);
 
-	// if( ImGui::Button( "Play Sound              (H)" ) ) {
-    //     playWaterSound();
-    // }
+	if( ImGui::Button( "Play Sound              (H)" ) ) {
+        playWaterSound();
+    }
 
     if( ImGui::Button( "Reset                   (A)" ) ) {
         reset();
@@ -526,6 +554,13 @@ void A5::guiLogic()
 }
 
 //----------------------------------------------------------------------------------------
+bool A5::isSphereInWater()
+{
+	if (SurfaceY - (m_sphere_center.y - m_sphere_radius) > 0) return true;
+	return false;
+}
+
+//----------------------------------------------------------------------------------------
 void A5::updateSpherePosition()
 {
 	float buoyancyY = glm::max(
@@ -533,7 +568,9 @@ void A5::updateSpherePosition()
 		glm::min(SurfaceY - (m_sphere_center.y - m_sphere_radius), 2.0f*m_sphere_radius
 		)) * 20.0f;
 
-	float sphereAccel = buoyancyY + GravityY;
+	float dragY = -m_sphere_velocityY * 10.0f;
+
+	float sphereAccel = buoyancyY + GravityY + dragY;
 
 	m_sphere_velocityY += sphereAccel / 800.0f;
 

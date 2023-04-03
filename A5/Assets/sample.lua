@@ -31,8 +31,9 @@ planeMesh:translate(0.0, -0.25, 0.0)
 rootNode:add_child(planeMesh)
 
 sphereMesh = gr.mesh('sphere', 'sphere')
-sphereMesh:scale(0.5, 0.5, 0.5)
-sphereMesh:translate(0.2, 0.75, 0.2)
+sphereMesh:scale(0.75, 0.75, 0.75)
+sphereMesh:translate(0.2, 1.5, 0.2)
+sphereMesh:set_material(white)
 rootNode:add_child(sphereMesh)
 
 return rootNode
