@@ -51,7 +51,7 @@ A5::A5(const std::string &luaSceneFile)
 	  m_model_rotation(glm::mat4(1.0f)),
 	  m_sphere_center(glm::vec3(0.2, 0.75, 0.2)),
 	  m_sphere_radius(0.5f),
-	  m_sphere_velocity(0.0f),
+	  m_sphere_velocityY(0.0f),
 	  m_sphereNode(nullptr),
 	  m_initialSphereTrans(glm::mat4(1.0f)),
 	  do_physics(false)
@@ -461,6 +461,10 @@ void A5::appLogic()
     // Place per frame, application logic here ...
 
 	uploadCommonSceneUniforms();
+
+	if (do_physics) {
+		updateSpherePosition();
+	}
 }
 
 //----------------------------------------------------------------------------------------
@@ -488,11 +492,18 @@ void A5::guiLogic()
 
     // Add more gui elements here here ...
 
-	ImGui::Checkbox("Physics                 (G)", &do_physics);
+	if (ImGui::Checkbox("Physics                 (G)", &do_physics)) {
+		if (do_physics == true && current_mode == MOVE_SPHERE) {
+			current_mode = POSITION_ORIENTATION;
+		}
+		m_sphere_velocityY = 0.0f;
+	}
 
 	ImGui::RadioButton("Position/Orientation    (P)", (int*)&current_mode, POSITION_ORIENTATION);
 
-	ImGui::RadioButton("Move Sphere             (O)", (int*)&current_mode, MOVE_SPHERE);
+	if (ImGui::RadioButton("Move Sphere             (O)", (int*)&current_mode, MOVE_SPHERE)) {
+		if (do_physics) do_physics = false;
+	}
 
 	ImGui::RadioButton("Produce Ripples         (I)", (int*)&current_mode, PRODUCE_RIPPLES);
 
@@ -512,6 +523,21 @@ void A5::guiLogic()
     ImGui::Text("Framerate: %.1f FPS", ImGui::GetIO().Framerate);
 
     ImGui::End();
+}
+
+//----------------------------------------------------------------------------------------
+void A5::updateSpherePosition()
+{
+	float buoyancyY = glm::max(
+		0.0f, 
+		glm::min(SurfaceY - (m_sphere_center.y - m_sphere_radius), 2.0f*m_sphere_radius
+		)) * 20.0f;
+
+	float sphereAccel = buoyancyY + GravityY;
+
+	m_sphere_velocityY += sphereAccel / 800.0f;
+
+	moveSphere(glm::vec3(0.0f, m_sphere_velocityY, 0.0f));
 }
 
 //----------------------------------------------------------------------------------------
@@ -944,19 +970,54 @@ void A5::moveSphere(glm::vec3 translationVector) {
 
 	// if (m_sphere_center.x + translationVector.x)
 
+	// if (m_sphere_center.x - m_sphere_radius + translationVector.x < MinX ||
+	// 	m_sphere_center.x + m_sphere_radius + translationVector.x > MaxX) {
+	// 		translationVector.x = translationVector.x >= 0.0f ? 
+	// 			glm::max(MaxX - (m_sphere_center.x + m_sphere_radius), 0.0f) :
+	// 			glm::max((m_sphere_center.x - m_sphere_radius) - MinX, 0.0f);
+	// 		// translationVector.x = 0.0f;
+	// 		m_sphere_velocityY = 0.0f;
+	// }
+
+	// if (m_sphere_center.y - m_sphere_radius + translationVector.y < MinY ||
+	// 	m_sphere_center.y + m_sphere_radius + translationVector.y > MaxY) {
+	// 		translationVector.y = translationVector.y >= 0.0f ? 
+	// 			glm::max(MaxY - (m_sphere_center.y + m_sphere_radius), 0.0f) :
+	// 			glm::max((m_sphere_center.y - m_sphere_radius) - MinY, 0.0f);
+	// 		m_sphere_velocityY = 0.0f;
+	// }
+
+	// if (m_sphere_center.z - m_sphere_radius + translationVector.z < MinZ ||
+	// 	m_sphere_center.z + m_sphere_radius + translationVector.z > MaxZ) {
+	// 		translationVector.z = translationVector.z >= 0.0f ? 
+	// 			glm::max(MaxZ - (m_sphere_center.z + m_sphere_radius), 0.0f) :
+	// 			glm::max((m_sphere_center.z - m_sphere_radius) - MinZ, 0.0f);
+	// 		m_sphere_velocityY = 0.0f;
+	// }
+
 	if (m_sphere_center.x - m_sphere_radius + translationVector.x < MinX ||
 		m_sphere_center.x + m_sphere_radius + translationVector.x > MaxX) {
-			translationVector.x = 0.0f;
+			translationVector.x = translationVector.x >= 0.0f ? 
+				MaxX - (m_sphere_center.x + m_sphere_radius) :
+				(m_sphere_center.x - m_sphere_radius) - MinX;
+			// translationVector.x = 0.0f;
+			m_sphere_velocityY = 0.0f;
 	}
 
 	if (m_sphere_center.y - m_sphere_radius + translationVector.y < MinY ||
 		m_sphere_center.y + m_sphere_radius + translationVector.y > MaxY) {
-			translationVector.y = 0.0f;
+			translationVector.y = translationVector.y >= 0.0f ? 
+				MaxY - (m_sphere_center.y + m_sphere_radius) :
+				(m_sphere_center.y - m_sphere_radius) - MinY;
+			m_sphere_velocityY = 0.0f;
 	}
 
 	if (m_sphere_center.z - m_sphere_radius + translationVector.z < MinZ ||
 		m_sphere_center.z + m_sphere_radius + translationVector.z > MaxZ) {
-			translationVector.z = 0.0f;
+			translationVector.z = translationVector.z >= 0.0f ? 
+				MaxZ - (m_sphere_center.z + m_sphere_radius) :
+				(m_sphere_center.z - m_sphere_radius) - MinZ;
+			m_sphere_velocityY = 0.0f;
 	}
 
 
@@ -1069,6 +1130,7 @@ bool A5::keyInputEvent(int key, int action, int mods)
 		}
 		if( key == GLFW_KEY_O ) {
 			current_mode = MOVE_SPHERE;
+			if (do_physics) do_physics = false;
 			eventHandled = true;
 		}
 		if( key == GLFW_KEY_I ) {
@@ -1085,6 +1147,7 @@ bool A5::keyInputEvent(int key, int action, int mods)
 		}
 		if (key == GLFW_KEY_G) {
 			do_physics = !do_physics;
+			m_sphere_velocityY = 0.0f;
 			eventHandled = true;
 		}
 		if (key == GLFW_KEY_H) {

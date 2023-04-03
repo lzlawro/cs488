@@ -93,6 +93,8 @@ protected:
 
 	void moveSphere(glm::vec3 translationVector);
 
+	void updateSpherePosition();
+
     glm::mat4 m_perspective;
     glm::mat4 m_view;
 
@@ -133,7 +135,7 @@ protected:
 
 	bool do_physics;
 
-	float m_sphere_velocity;
+	float m_sphere_velocityY;
 
 	// GLfloat m_sphere_radius;
 	// glm::vec3 m_sphere_center;
@@ -144,4 +146,5 @@ protected:
 
 	double m_prev_xPos;
 	double m_prev_yPos;
+
 };
