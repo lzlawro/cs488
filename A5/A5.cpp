@@ -20,16 +20,20 @@
 #include <lodepng/lodepng.h>
 
 #include <queue>
+#include <cstdlib>
+#include <unistd.h>
+#include <ctime>
 
 static bool show_gui = true;
 
 const static float MinX = -2.0f;
 const static float MaxX = 2.0f;
-const static float MinY = -1.75f;
+const static float MinY = -2.75f;
 const static float MaxY = 5.0f;
 const static float MinZ = -2.0f;
 const static float MaxZ = 2.0f;
 const static float SurfaceY = -0.25f;
+const static float GravityY = -9.81f;
 
 //----------------------------------------------------------------------------------------
 // Constructor
@@ -47,6 +51,7 @@ A5::A5(const std::string &luaSceneFile)
 	  m_model_rotation(glm::mat4(1.0f)),
 	  m_sphere_center(glm::vec3(0.2, 0.75, 0.2)),
 	  m_sphere_radius(0.5f),
+	  m_sphere_velocity(0.0f),
 	  m_sphereNode(nullptr),
 	  m_initialSphereTrans(glm::mat4(1.0f)),
 	  do_physics(false)
@@ -220,6 +225,30 @@ void A5::uploadVertexDataToVbos(
 }
 
 //----------------------------------------------------------------------------------------
+static void playWaterSound() {
+	pid_t pid = fork();
+	if (pid == 0) {
+		srand(time(0));
+		int num = rand() % 4;
+		switch (num) {
+			case 0:
+				std::system("canberra-gtk-play -f Assets/Splash-2CloseDistance.ogg");
+				break;
+			case 1:
+				std::system("canberra-gtk-play -f Assets/Splash-4CloseDistance.ogg");
+				break;
+			case 2:
+				std::system("canberra-gtk-play -f Assets/Splash-6CloseDistance.ogg");
+				break;
+			case 3:
+				std::system("canberra-gtk-play -f Assets/Splash-7CloseDistance.ogg");
+				break;
+		}
+		exit(0);
+	}
+}
+
+//----------------------------------------------------------------------------------------
 void A5::mapVboDataToVertexShaderInputLocations()
 {
     // Bind VAO in order to record the data mapping.
@@ -369,6 +398,7 @@ void A5::uploadCommonSceneUniforms() {
  */
 void A5::init() 
 {
+
     // Set the background colour.
     glClearColor(0.4, 0.4, 0.4, 1.0);
 
@@ -465,6 +495,10 @@ void A5::guiLogic()
 	ImGui::RadioButton("Move Sphere             (O)", (int*)&current_mode, MOVE_SPHERE);
 
 	ImGui::RadioButton("Produce Ripples         (I)", (int*)&current_mode, PRODUCE_RIPPLES);
+
+	// if( ImGui::Button( "Play Sound              (H)" ) ) {
+    //     playWaterSound();
+    // }
 
     if( ImGui::Button( "Reset                   (A)" ) ) {
         reset();
@@ -910,18 +944,18 @@ void A5::moveSphere(glm::vec3 translationVector) {
 
 	// if (m_sphere_center.x + translationVector.x)
 
-	if (m_sphere_center.x - m_sphere_radius + translationVector.x <= MinX ||
-		m_sphere_center.x + m_sphere_radius + translationVector.x >= MaxX) {
+	if (m_sphere_center.x - m_sphere_radius + translationVector.x < MinX ||
+		m_sphere_center.x + m_sphere_radius + translationVector.x > MaxX) {
 			translationVector.x = 0.0f;
 	}
 
-	if (m_sphere_center.y - m_sphere_radius + translationVector.y <= MinY ||
-		m_sphere_center.y + m_sphere_radius + translationVector.y >= MaxY) {
+	if (m_sphere_center.y - m_sphere_radius + translationVector.y < MinY ||
+		m_sphere_center.y + m_sphere_radius + translationVector.y > MaxY) {
 			translationVector.y = 0.0f;
 	}
 
-	if (m_sphere_center.z - m_sphere_radius + translationVector.z <= MinZ ||
-		m_sphere_center.z + m_sphere_radius + translationVector.z >= MaxZ) {
+	if (m_sphere_center.z - m_sphere_radius + translationVector.z < MinZ ||
+		m_sphere_center.z + m_sphere_radius + translationVector.z > MaxZ) {
 			translationVector.z = 0.0f;
 	}
 
@@ -1051,6 +1085,10 @@ bool A5::keyInputEvent(int key, int action, int mods)
 		}
 		if (key == GLFW_KEY_G) {
 			do_physics = !do_physics;
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_H) {
+			playWaterSound();
 			eventHandled = true;
 		}
 	}

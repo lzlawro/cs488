@@ -133,6 +133,8 @@ protected:
 
 	bool do_physics;
 
+	float m_sphere_velocity;
+
 	// GLfloat m_sphere_radius;
 	// glm::vec3 m_sphere_center;
 
