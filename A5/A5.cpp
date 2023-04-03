@@ -19,7 +19,17 @@
 
 #include <lodepng/lodepng.h>
 
+#include <queue>
+
 static bool show_gui = true;
+
+const static float MinX = -2.0f;
+const static float MaxX = 2.0f;
+const static float MinY = -1.75f;
+const static float MaxY = 5.0f;
+const static float MinZ = -2.0f;
+const static float MaxZ = 2.0f;
+const static float SurfaceY = -0.25f;
 
 //----------------------------------------------------------------------------------------
 // Constructor
@@ -34,7 +44,12 @@ A5::A5(const std::string &luaSceneFile)
 	  m_vbo_vertexPositions(0),
 	  m_vbo_vertexNormals(0),
 	  m_model_translation(glm::mat4(1.0f)),
-	  m_model_rotation(glm::mat4(1.0f))
+	  m_model_rotation(glm::mat4(1.0f)),
+	  m_sphere_center(glm::vec3(0.2, 0.75, 0.2)),
+	  m_sphere_radius(0.5f),
+	  m_sphereNode(nullptr),
+	  m_initialSphereTrans(glm::mat4(1.0f)),
+	  do_physics(false)
 {
     
 }
@@ -44,6 +59,23 @@ A5::A5(const std::string &luaSceneFile)
 A5::~A5()
 {
 
+}
+
+//----------------------------------------------------------------------------------------
+void A5::reset()
+{
+	m_prev_xPos = (0.0);
+	m_prev_yPos = (0.0);
+	m_model_translation = (glm::mat4(1.0f));
+	m_model_rotation = (glm::mat4(1.0f));
+	// m_sphereNode->translate(glm::vec3(0, 0, -7.5));
+	// m_sphereNode->translate(glm::vec3(0.2, 0.75, 0.2));
+	m_sphereNode->set_transform(m_initialSphereTrans);
+	// std::cout << initialSphereTrans << std::endl;
+	m_sphere_center = (glm::vec3(0.2, 0.75, 0.2));
+	m_sphere_radius = (0.5f);
+	
+	do_physics = false;
 }
 
 //----------------------------------------------------------------------------------------
@@ -64,6 +96,39 @@ void A5::processLuaSceneFile(const std::string &filename) {
 }
 
 //----------------------------------------------------------------------------------------
+static SceneNode* findSphereNode(SceneNode *node, unsigned int node_count) {
+	bool visited[node_count];
+	for (int i = 0; i < node_count; i++) visited[i] = false;
+
+	std::queue<SceneNode *> nodeQueue;
+	// BFS with queue
+	visited[node->m_nodeId] = true;
+	nodeQueue.push(node);
+
+	while (!nodeQueue.empty()) {
+		SceneNode *currentNode = nodeQueue.front();
+		nodeQueue.pop();
+
+		if (currentNode->m_name == "sphere") {
+			// cout << "head found" << endl;
+			// initialSphereTrans = currentNode->get_transform();
+			return currentNode;
+		}
+
+		for (SceneNode *child: currentNode->children) {
+			if (visited[child->m_nodeId]) continue;
+
+			visited[child->m_nodeId] = true;
+
+			nodeQueue.push(child);
+		}
+	}
+
+	// cout << "head not found" << endl;
+	return nullptr;
+}
+
+//----------------------------------------------------------------------------------------
 void A5::createShaderProgram()
 {
     m_shader.generateProgramObject();
@@ -73,12 +138,12 @@ void A5::createShaderProgram()
 }
 
 //----------------------------------------------------------------------------------------
-void A5::createBallShader()
+void A5::createSphereShader()
 {
-	m_ball_shader.generateProgramObject();
-	m_ball_shader.attachVertexShader(getAssetFilePath("BallVertexShader.vs").c_str());
-	m_ball_shader.attachFragmentShader(getAssetFilePath("BallFragmentShader.fs").c_str());
-	m_ball_shader.link();
+	m_sphere_shader.generateProgramObject();
+	m_sphere_shader.attachVertexShader(getAssetFilePath("SphereVertexShader.vs").c_str());
+	m_sphere_shader.attachFragmentShader(getAssetFilePath("SphereFragmentShader.fs").c_str());
+	m_sphere_shader.link();
 }
 
 //----------------------------------------------------------------------------------------
@@ -94,6 +159,8 @@ void A5::createWaterShader()
 void A5::createPoolShader()
 {
 	m_pool_shader.generateProgramObject();
+	// m_pool_shader.attachVertexShader(getAssetFilePath("PoolVertexShader copy.vs").c_str());
+	// m_pool_shader.attachFragmentShader(getAssetFilePath("PoolFragmentShader copy.fs").c_str());
 	m_pool_shader.attachVertexShader(getAssetFilePath("PoolVertexShader.vs").c_str());
 	m_pool_shader.attachFragmentShader(getAssetFilePath("PoolFragmentShader.fs").c_str());
 	m_pool_shader.link();
@@ -266,13 +333,13 @@ void A5::uploadCommonSceneUniforms() {
 	}
 	m_shader.disable();
 
-	m_ball_shader.enable();
+	m_sphere_shader.enable();
 	{
-		location = m_ball_shader.getUniformLocation("Perspective");
+		location = m_sphere_shader.getUniformLocation("Perspective");
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perspective));
 		CHECK_GL_ERRORS;	
 	}
-	m_ball_shader.disable();
+	m_sphere_shader.disable();
 
 	m_pool_shader.enable();
 	{
@@ -307,7 +374,7 @@ void A5::init()
 
     createShaderProgram();
 
-	createBallShader();
+	createSphereShader();
 	createPoolShader();
 	createWaterShader();
 
@@ -343,6 +410,12 @@ void A5::init()
 
 	initPoolTexture();
 
+	m_sphereNode = findSphereNode(m_rootNode.get(), m_rootNode->totalSceneNodes());
+
+	m_initialSphereTrans = m_sphereNode->get_transform();
+
+	// std::cout << m_sphereNode->m_name << std::endl;
+
     // Exiting the current scope calls delete automatically on meshConsolidator freeing
 	// all vertex data resources.  This is fine since we already copied this data to
 	// VBOs on the GPU.  We have no use for storing vertex data on the CPU side beyond
@@ -353,7 +426,7 @@ void A5::init()
 /*
  * Called once per frame, before guiLogic().
  */
-void A5::appLogic() 
+void A5::appLogic()
 {
     // Place per frame, application logic here ...
 
@@ -385,8 +458,20 @@ void A5::guiLogic()
 
     // Add more gui elements here here ...
 
+	ImGui::Checkbox("Physics                 (G)", &do_physics);
+
+	ImGui::RadioButton("Position/Orientation    (P)", (int*)&current_mode, POSITION_ORIENTATION);
+
+	ImGui::RadioButton("Move Sphere             (O)", (int*)&current_mode, MOVE_SPHERE);
+
+	ImGui::RadioButton("Produce Ripples         (I)", (int*)&current_mode, PRODUCE_RIPPLES);
+
+    if( ImGui::Button( "Reset                   (A)" ) ) {
+        reset();
+    }
+
     // Create Button, and check if it was clicked:
-    if( ImGui::Button( "Quit Application" ) ) {
+    if( ImGui::Button( "Quit Application        (Q)" ) ) {
         glfwSetWindowShouldClose(m_window, GL_TRUE);
     }
 
@@ -430,27 +515,19 @@ void A5::updateShaderUniforms(
 }
 
 //----------------------------------------------------------------------------------------
-void A5::updateBallShaderUniforms(
+void A5::updateSphereShaderUniforms(
 	const glm::mat4 & viewMatrix,
 	const glm::mat4 & modelMatrix
 ) {
-	m_ball_shader.enable();
+	m_sphere_shader.enable();
 	{
 		//-- Set ModelView matrix:
-		GLint location = m_ball_shader.getUniformLocation("ModelView");
+		GLint location = m_sphere_shader.getUniformLocation("ModelView");
 		glm::mat4 modelView = viewMatrix * modelMatrix;
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
 		CHECK_GL_ERRORS;
-
-		// location = m_ball_shader.getUniformLocation("sphereCenter");
-		// glUniform3fv(location, 1, value_ptr(m_ball_center));
-		// CHECK_GL_ERRORS;
-
-		// location = m_ball_shader.getUniformLocation("sphereRadius");
-		// glUniform1f(location, m_ball_radius);
-		// CHECK_GL_ERRORS;
 	}
-	m_ball_shader.disable();
+	m_sphere_shader.disable();
 }
 
 //----------------------------------------------------------------------------------------
@@ -465,14 +542,6 @@ void A5::updatePoolShaderUniforms(
 		glm::mat4 modelView = viewMatrix * modelMatrix;
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
 		CHECK_GL_ERRORS;
-
-		// location = m_ball_shader.getUniformLocation("sphereCenter");
-		// glUniform3fv(location, 1, value_ptr(m_ball_center));
-		// CHECK_GL_ERRORS;
-
-		// location = m_ball_shader.getUniformLocation("sphereRadius");
-		// glUniform1f(location, m_ball_radius);
-		// CHECK_GL_ERRORS;
 	}
 	m_pool_shader.disable();
 }
@@ -490,11 +559,11 @@ void A5::updateWaterShaderUniforms(
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(modelView));
 		CHECK_GL_ERRORS;
 
-		// location = m_ball_shader.getUniformLocation("sphereCenter");
-		// glUniform3fv(location, 1, value_ptr(m_ball_center));
+		// location = m_sphere_shader.getUniformLocation("sphereCenter");
+		// glUniform3fv(location, 1, value_ptr(m_sphere_center));
 		// CHECK_GL_ERRORS;
 
-		// location = m_ball_shader.getUniformLocation("sphereRadius");
+		// location = m_sphere_shader.getUniformLocation("sphereRadius");
 		// glUniform1f(location, m_ball_radius);
 		// CHECK_GL_ERRORS;
 	}
@@ -531,15 +600,15 @@ void A5::renderSceneNode(
 
 		BatchInfo batchInfo = m_batchInfoMap[geometryNode->meshId];
 
-		if (node->m_name == "ball") {
-			updateBallShaderUniforms(
+		if (node->m_name == "sphere") {
+			updateSphereShaderUniforms(
 				view,
 				model
 			);
 
-			m_ball_shader.enable();
+			m_sphere_shader.enable();
 			glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
-			m_ball_shader.disable();
+			m_sphere_shader.disable();
 		} else if (node->m_name == "water") {
 			updateWaterShaderUniforms(
 				view,
@@ -836,6 +905,33 @@ bool A5::cursorEnterWindowEvent(int entered)
 }
 
 //----------------------------------------------------------------------------------------
+void A5::moveSphere(glm::vec3 translationVector) {
+	if (m_sphereNode == nullptr) return;
+
+	// if (m_sphere_center.x + translationVector.x)
+
+	if (m_sphere_center.x - m_sphere_radius + translationVector.x <= MinX ||
+		m_sphere_center.x + m_sphere_radius + translationVector.x >= MaxX) {
+			translationVector.x = 0.0f;
+	}
+
+	if (m_sphere_center.y - m_sphere_radius + translationVector.y <= MinY ||
+		m_sphere_center.y + m_sphere_radius + translationVector.y >= MaxY) {
+			translationVector.y = 0.0f;
+	}
+
+	if (m_sphere_center.z - m_sphere_radius + translationVector.z <= MinZ ||
+		m_sphere_center.z + m_sphere_radius + translationVector.z >= MaxZ) {
+			translationVector.z = 0.0f;
+	}
+
+
+	m_sphere_center += translationVector;
+
+	m_sphereNode->translate(translationVector);
+}
+
+//----------------------------------------------------------------------------------------
 /*
  * Event handler.  Handles mouse cursor movement events.
  */
@@ -847,12 +943,36 @@ bool A5::mouseMoveEvent(double xPos, double yPos)
 		// Fill in with event handling code...
 		switch(current_mode) {
 			case POSITION_ORIENTATION:
-				updatePositionOrientation(xPos, yPos);
-				eventHandled = true;
+				{
+					updatePositionOrientation(xPos, yPos);
+					eventHandled = true;
+				}
 				break;
-			case MOVE_BALL:
+			case MOVE_SPHERE: 
+				{
+					float deltaX = (xPos - m_prev_xPos) / 200.0f;
+					float deltaY = (yPos - m_prev_yPos) / 200.0f;
+
+					glm::vec3 translationVector = glm::vec3(0.0f, 0.0f, 0.0f);
+		
+					if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
+						translationVector.x = deltaX;
+					}
+					if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
+						translationVector.y = deltaX;
+					}
+					if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
+						translationVector.z = deltaX;
+					}
+					moveSphere(translationVector);
+
+					eventHandled = true;
+				}
 				break;
 			case PRODUCE_RIPPLES:
+				{
+
+				}
 				break;
 		}
 	}
@@ -909,8 +1029,28 @@ bool A5::keyInputEvent(int key, int action, int mods)
 			show_gui = !show_gui;
 			eventHandled = true;
 		}
+		if( key == GLFW_KEY_P ) {
+			current_mode = POSITION_ORIENTATION;
+			eventHandled = true;
+		}
+		if( key == GLFW_KEY_O ) {
+			current_mode = MOVE_SPHERE;
+			eventHandled = true;
+		}
+		if( key == GLFW_KEY_I ) {
+			current_mode = PRODUCE_RIPPLES;
+			eventHandled = true;
+		}
 		if (key == GLFW_KEY_Q) {
 			glfwSetWindowShouldClose(m_window, true);
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_A) {
+			reset();
+			eventHandled = true;
+		}
+		if (key == GLFW_KEY_G) {
+			do_physics = !do_physics;
 			eventHandled = true;
 		}
 	}

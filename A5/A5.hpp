@@ -43,7 +43,7 @@ protected:
     //-- One time initialization methods:
 	void processLuaSceneFile(const std::string & filename);
 	void createShaderProgram();
-    void createBallShader();
+    void createSphereShader();
     void createWaterShader();
     void createPoolShader();
 	void enableVertexShaderInputSlots();
@@ -56,6 +56,8 @@ protected:
 
 	void initPoolTexture();
 
+	void reset();
+
 	void updatePositionOrientation(double xPos, double yPos);
 	void performTrackballTransformation(double xPos, double yPos);
 
@@ -65,7 +67,7 @@ protected:
 		const glm::mat4 & modelMatrix
 	);
 
-	void updateBallShaderUniforms(
+	void updateSphereShaderUniforms(
 		const glm::mat4 & viewMatrix,
 		const glm::mat4 & modelMatrix
 	);
@@ -89,6 +91,8 @@ protected:
 
 	void renderSceneGraph(const SceneNode &node);
 
+	void moveSphere(glm::vec3 translationVector);
+
     glm::mat4 m_perspective;
     glm::mat4 m_view;
 
@@ -110,18 +114,27 @@ protected:
 	// required to render the mesh with identifier MeshId.
     BatchInfoMap m_batchInfoMap;
 
-    ShaderProgram m_ball_shader;
+    ShaderProgram m_sphere_shader;
     ShaderProgram m_water_shader;
     ShaderProgram m_pool_shader;
 
+	SceneNode* m_sphereNode;
+
+	glm::vec3 m_sphere_center;
+	float m_sphere_radius;
+
+	glm::mat4 m_initialSphereTrans;
+
 	GLuint m_pool_texture;
 
-	enum Mode {POSITION_ORIENTATION, MOVE_BALL, PRODUCE_RIPPLES};
+	enum Mode {POSITION_ORIENTATION, MOVE_SPHERE, PRODUCE_RIPPLES};
 
 	Mode current_mode;
 
-	// GLfloat m_ball_radius;
-	// glm::vec3 m_ball_center;
+	bool do_physics;
+
+	// GLfloat m_sphere_radius;
+	// glm::vec3 m_sphere_center;
 
     std::string m_luaSceneFile;
 
