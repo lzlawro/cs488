@@ -54,6 +54,11 @@ protected:
 	void initPerspectiveMatrix();
 	void uploadCommonSceneUniforms();
 
+	void initPoolTexture();
+
+	void updatePositionOrientation(double xPos, double yPos);
+	void performTrackballTransformation(double xPos, double yPos);
+
 	void updateShaderUniforms(
 		const GeometryNode & node,
 		const glm::mat4 & viewMatrix,
@@ -109,10 +114,19 @@ protected:
     ShaderProgram m_water_shader;
     ShaderProgram m_pool_shader;
 
-	GLfloat m_ball_radius;
-	glm::vec3 m_ball_center;
+	GLuint m_pool_texture;
+
+	enum Mode {POSITION_ORIENTATION, MOVE_BALL, PRODUCE_RIPPLES};
+
+	Mode current_mode;
+
+	// GLfloat m_ball_radius;
+	// glm::vec3 m_ball_center;
 
     std::string m_luaSceneFile;
 
     std::shared_ptr<SceneNode> m_rootNode;
+
+	double m_prev_xPos;
+	double m_prev_yPos;
 };

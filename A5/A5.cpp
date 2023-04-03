@@ -14,21 +14,27 @@
 #include <glm/gtx/io.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "../Trackball_Example/events.h"
+#include "../Trackball_Example/trackball.h"
+
+#include <lodepng/lodepng.h>
+
 static bool show_gui = true;
 
 //----------------------------------------------------------------------------------------
 // Constructor
 A5::A5(const std::string &luaSceneFile)
-    : m_luaSceneFile(luaSceneFile),
+    : current_mode(POSITION_ORIENTATION),
+	  m_prev_xPos(0.0),
+	  m_prev_yPos(0.0),
+	  m_luaSceneFile(luaSceneFile),
       m_positionAttribLocation(0),
 	  m_normalAttribLocation(0),
 	  m_vao_meshData(0),
 	  m_vbo_vertexPositions(0),
 	  m_vbo_vertexNormals(0),
 	  m_model_translation(glm::mat4(1.0f)),
-	  m_model_rotation(glm::mat4(1.0f)),
-	  m_ball_radius(0.3f),
-	  m_ball_center(glm::vec3(0.1, 0.5, -5.4))
+	  m_model_rotation(glm::mat4(1.0f))
 {
     
 }
@@ -191,6 +197,42 @@ void A5::initLightSources() {
 }
 
 //----------------------------------------------------------------------------------------
+void A5::initPoolTexture() {
+	glGenTextures(1, &m_pool_texture);
+	glBindTexture(GL_TEXTURE_2D, m_pool_texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	std::vector<unsigned char> image;
+	unsigned int width, height;
+	unsigned int error = lodepng::decode(image, width, height, getAssetFilePath("tiles.png").c_str());
+
+	if (error != 0) {
+		std::cout << "error " << error << ": " << lodepng_error_text(error) << std::endl;
+		std::cout << "error with decoding png" << std::endl;
+		return;
+	}
+
+	// Here the PNG is loaded in "image". All the rest of the code is SDL and OpenGL stuff
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, &image[0]);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	m_pool_shader.enable();
+	{
+		GLint location = m_pool_shader.getUniformLocation("tiles");
+		glUniform1i(location, 0);
+		// std::cout << m_pool_texture << std::endl;
+		CHECK_GL_ERRORS;
+	}
+	m_pool_shader.disable();
+}
+
+//----------------------------------------------------------------------------------------
 void A5::uploadCommonSceneUniforms() {
 	GLint location;
 
@@ -233,7 +275,12 @@ void A5::uploadCommonSceneUniforms() {
 	{
 		location = m_pool_shader.getUniformLocation("Perspective");
 		glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(m_perspective));
-		CHECK_GL_ERRORS;	
+		CHECK_GL_ERRORS;
+
+		// location = m_pool_shader.getUniformLocation("tiles");
+		// glUniform1i(location, m_pool_texture);
+		// std::cout << m_pool_texture << std::endl;
+		// CHECK_GL_ERRORS;
 	}
 	m_pool_shader.disable();
 
@@ -290,6 +337,8 @@ void A5::init()
     initViewMatrix();
     
     initLightSources();
+
+	initPoolTexture();
 
     // Exiting the current scope calls delete automatically on meshConsolidator freeing
 	// all vertex data resources.  This is fine since we already copied this data to
@@ -495,6 +544,9 @@ void A5::renderSceneNode(
 			);
 
 			m_water_shader.enable();
+			// std::cout << GL_TEXTURE0 + m_pool_texture << std::endl;
+			glActiveTexture(GL_TEXTURE0 + m_pool_texture);
+			glBindTexture(GL_TEXTURE_2D, m_pool_texture);
 			glDrawArrays(GL_TRIANGLES, batchInfo.startIndex, batchInfo.numIndices);
 			m_water_shader.disable();
 		} else if (node->m_name == "pool") {
@@ -577,6 +629,190 @@ void A5::renderSceneGraph(const SceneNode & root) {
 }
 
 //----------------------------------------------------------------------------------------
+void A5::updatePositionOrientation(double xPos, double yPos) {
+	float deltaX = (xPos - m_prev_xPos) / 200.0f;
+	float deltaY = (yPos - m_prev_yPos) / 200.0f;
+
+	glm::vec3 translationVector = glm::vec3(0.0f, 0.0f, 0.0f);
+
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_LEFT)) {
+		translationVector.x = deltaX;
+		translationVector.y = -deltaY;
+	}
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_MIDDLE)) {
+		translationVector.z = deltaY;
+	}
+	if (ImGui::IsMouseDragging(GLFW_MOUSE_BUTTON_RIGHT)) {
+		// trackball...
+		performTrackballTransformation(xPos, yPos);
+	}
+
+	m_model_translation = glm::translate(m_model_translation, translationVector);
+}
+
+//----------------------------------------------------------------------------------------
+void vTransposeMatrix(Matrix mSrcDst) {
+    GLdouble temp;
+    int i,j;
+
+    // Transpose matrix
+    for ( i=0; i<4; ++i ) {
+        for ( j=i+1; j<4; ++j ) {
+            temp = mSrcDst[i][j];
+            mSrcDst[i][j] = mSrcDst[j][i];
+            mSrcDst[j][i] = temp;
+        }
+    }
+}
+
+//----------------------------------------------------------------------------------------
+void vCalcRotVec(float fNewX, float fNewY,
+                 float fOldX, float fOldY,
+                 float fDiameter,
+				 bool *fNewOutside, bool *fOldOutside,
+				 glm::vec3 *fNewVec, glm::vec3 *fOldVec,
+                 float *fVecX, float *fVecY, float *fVecZ) {
+   long  nXOrigin, nYOrigin;
+   float fNewVecX, fNewVecY, fNewVecZ,
+         fOldVecX, fOldVecY, fOldVecZ,
+         fLength;
+
+   fNewVecX    = fNewX * 2.0 / fDiameter;
+   fNewVecY    = fNewY * 2.0 / fDiameter;
+   fNewVecZ    = (1.0 - fNewVecX * fNewVecX - fNewVecY * fNewVecY);
+
+   *fNewVec = glm::vec3(fNewVecX, fNewVecY, fNewVecZ);
+
+    /* If the Z component is less than 0, the mouse point
+    * falls outside of the trackball which is interpreted
+    * as rotation about the Z axis.
+    */
+   if (fNewVecZ < 0.0) {
+      fLength = sqrt(1.0 - fNewVecZ);
+      fNewVecZ  = 0.0;
+      fNewVecX /= fLength;
+      fNewVecY /= fLength;
+	  *fNewOutside = true;
+   } else {
+      fNewVecZ = sqrt(fNewVecZ);
+	  *fNewOutside = false;
+   }
+
+   fOldVecX    = fOldX * 2.0 / fDiameter;
+   fOldVecY    = fOldY * 2.0 / fDiameter;
+   fOldVecZ    = (1.0 - fOldVecX * fOldVecX - fOldVecY * fOldVecY);
+
+   *fOldVec = glm::vec3(fOldVecX, fOldVecY, fOldVecZ);
+
+   /* If the Z component is less than 0, the mouse point
+    * falls outside of the trackball which is interpreted
+    * as rotation about the Z axis.
+    */
+   if (fOldVecZ < 0.0) {
+      fLength = sqrt(1.0 - fOldVecZ);
+      fOldVecZ  = 0.0;
+      fOldVecX /= fLength;
+      fOldVecY /= fLength;
+	  *fOldOutside = true;
+   } else {
+      fOldVecZ = sqrt(fOldVecZ);
+	  *fOldOutside = false;
+   }
+
+   *fVecX = fOldVecY * fNewVecZ - fNewVecY * fOldVecZ;
+   *fVecY = fOldVecZ * fNewVecX - fNewVecZ * fOldVecX;
+   *fVecZ = fOldVecX * fNewVecY - fNewVecX * fOldVecY;
+}
+
+//----------------------------------------------------------------------------------------
+void vAxisRotMatrix(float fVecX, float fVecY, float fVecZ, glm::mat4 &mNewMat) {
+    float fRadians, fInvLength, fNewVecX, fNewVecY, fNewVecZ;
+
+    /* Find the length of the vector which is the angle of rotation
+     * (in radians)
+     */
+    fRadians = sqrt(fVecX * fVecX + fVecY * fVecY + fVecZ * fVecZ);
+
+    /* If the vector has zero length - return the identity matrix */
+    if (fRadians > -0.000001 && fRadians < 0.000001) {
+		mNewMat = glm::mat4(1.0f);
+        return;
+    }
+
+    /* Normalize the rotation vector now in preparation for making
+     * rotation matrix. 
+     */
+    fInvLength = 1 / fRadians;
+    fNewVecX   = fVecX * fInvLength;
+    fNewVecY   = fVecY * fInvLength;
+    fNewVecZ   = fVecZ * fInvLength;
+
+    /* Create the arbitrary axis rotation matrix */
+    double dSinAlpha = sin(fRadians);
+    double dCosAlpha = cos(fRadians);
+    double dT = 1 - dCosAlpha;
+
+    mNewMat[0][0] = dCosAlpha + fNewVecX*fNewVecX*dT;
+    mNewMat[0][1] = fNewVecX*fNewVecY*dT + fNewVecZ*dSinAlpha;
+    mNewMat[0][2] = fNewVecX*fNewVecZ*dT - fNewVecY*dSinAlpha;
+    mNewMat[0][3] = 0;
+
+    mNewMat[1][0] = fNewVecX*fNewVecY*dT - dSinAlpha*fNewVecZ;
+    mNewMat[1][1] = dCosAlpha + fNewVecY*fNewVecY*dT;
+    mNewMat[1][2] = fNewVecY*fNewVecZ*dT + dSinAlpha*fNewVecX;
+    mNewMat[1][3] = 0;
+
+    mNewMat[2][0] = fNewVecZ*fNewVecX*dT + dSinAlpha*fNewVecY;
+    mNewMat[2][1] = fNewVecZ*fNewVecY*dT - dSinAlpha*fNewVecX;
+    mNewMat[2][2] = dCosAlpha + fNewVecZ*fNewVecZ*dT;
+    mNewMat[2][3] = 0;
+
+    mNewMat[3][0] = 0;
+    mNewMat[3][1] = 0;
+    mNewMat[3][2] = 0;
+    mNewMat[3][3] = 1;
+}
+
+//----------------------------------------------------------------------------------------
+void A5::performTrackballTransformation(double xPos, double yPos) {
+	float fOldX = m_prev_xPos, fNewX = xPos, fOldY = m_prev_yPos, fNewY = yPos;
+	float fDiameter;
+	int iCenterX, iCenterY;
+	float fNewModX, fNewModY, fOldModX, fOldModY;
+
+	float  fRotVecX, fRotVecY, fRotVecZ;
+    glm::mat4 mNewMat = glm::mat4(1.0f);
+
+	int nWinWidth = m_windowWidth;
+	int nWinHeight = m_windowHeight;
+
+	fDiameter = (nWinWidth < nWinHeight) ? nWinWidth * 0.5 : nWinHeight * 0.5;
+	iCenterX = nWinWidth / 2;
+	iCenterY = nWinHeight / 2;
+	fOldModX = fOldX - iCenterX;
+	fOldModY = fOldY - iCenterY;
+	fNewModX = fNewX - iCenterX;
+	fNewModY = fNewY - iCenterY;
+
+	bool fNewOutside, fOldOutside;
+
+	glm::vec3 fNewVec, fOldVec;
+
+	vCalcRotVec(fNewModX, fNewModY,
+                        fOldModX, fOldModY,
+                        fDiameter,
+						&fNewOutside, &fOldOutside,
+						&fNewVec, &fOldVec,
+                        &fRotVecX, &fRotVecY, &fRotVecZ);
+
+	vAxisRotMatrix(fRotVecX, -fRotVecY, fRotVecZ, mNewMat);
+
+	mNewMat = glm::transpose(mNewMat);
+
+	m_model_rotation = mNewMat * m_model_rotation;
+}
+
+//----------------------------------------------------------------------------------------
 /*
  * Called once, after program is signaled to terminate.
  */
@@ -603,6 +839,23 @@ bool A5::cursorEnterWindowEvent(int entered)
 bool A5::mouseMoveEvent(double xPos, double yPos) 
 {
     bool eventHandled(false);
+
+	if (!ImGui::IsMouseHoveringAnyWindow()) {
+		// Fill in with event handling code...
+		switch(current_mode) {
+			case POSITION_ORIENTATION:
+				updatePositionOrientation(xPos, yPos);
+				eventHandled = true;
+				break;
+			case MOVE_BALL:
+				break;
+			case PRODUCE_RIPPLES:
+				break;
+		}
+	}
+
+	m_prev_xPos = xPos;
+	m_prev_yPos = yPos;
 
     return eventHandled;
 }

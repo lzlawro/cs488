@@ -5,7 +5,7 @@
 // --------------------------------------------------------------------------------
 
 in vec3 position;
-in vec3 normal;
+// in vec3 normal;
 
 out VsOutFsIn {
     vec3 position;
