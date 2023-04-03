@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 
     if (argc > 1) {
         std::string luaSceneFile(argv[1]);
-		std::string title("W21 Assignment 3 - [");
+		std::string title("W21 Assignment 5 - [");
 		title += luaSceneFile;
 		title += "]";
 
@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     } else {
         std::cout << "Must supply Lua file as First argument to program.\n";
         std::cout << "For example:\n";
-        std::cout << "./A3 Assets/simpleScene.lua\n";
+        std::cout << "./A5 Assets/simpleScene.lua\n";
     }
 
     return 0;
