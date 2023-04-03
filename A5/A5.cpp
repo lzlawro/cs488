@@ -238,7 +238,7 @@ static void playWaterSound() {
 	std::string file_path;
 
 	srand(time(0));
-	int num = rand() % 4;
+	int num = rand() % 6;
 	switch (num) {
 		case 0:
 			file_path = "Assets/Splash-2CloseDistance.ogg";
@@ -256,6 +256,12 @@ static void playWaterSound() {
 			file_path = "Assets/Splash-7CloseDistance.ogg";
 			// std::system("canberra-gtk-play -f Assets/Splash-7CloseDistance.ogg");
 			break;
+		case 4:
+			file_path = "Assets/WaterDroplet.ogg";
+			break;
+		case 5:
+			file_path = "Assets/BRUH.ogg";
+			break;
 	}
 
 	args[0] = (char *)canberra.c_str();
@@ -266,6 +272,7 @@ static void playWaterSound() {
 	pid_t pid = fork();
 	if (pid == 0) {
 		execvp(args[0], args);
+		exit(0);
 	} else {
 		return;
 	}
